@@ -5,61 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GLYPH // TRAVEL MAP</title>
   
-  <!-- D3 & Supabase (極輕量 CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+  <!-- Supabase Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- NDOT Monospace Font -->
+  <!-- Space Mono / NDOT Monospace Font -->
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
     :root {
       --bg-color: #000000;
-      --panel-bg: rgba(18, 18, 18, 0.9);
+      --panel-bg: rgba(15, 15, 15, 0.9);
       --glyph-white: #ffffff;
       --glyph-red: #D71921;
-      --border-color: #262626;
+      --border-color: #2a2a2a;
       --text-muted: #666666;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Mono', monospace; }
     html, body { width: 100%; height: 100%; background-color: var(--bg-color); color: var(--glyph-white); overflow: hidden; }
 
-    /* SVG Canvas 地圖容器 */
-    #map-container {
+    /* 全螢幕 Canvas 畫布 */
+    #world-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100vw;
       height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
       background: #000000;
+      z-index: 1;
+      cursor: crosshair;
     }
 
-    svg {
-      width: 100%;
-      height: 100%;
-      background: #000000;
-    }
-
-    /* 陸地與邊界線條 - Nothing Style */
-    .country {
-      fill: #0a0a0a;
-      stroke: #222222;
-      stroke-width: 0.8px;
-      transition: fill 0.2s ease;
-    }
-    .country:hover {
-      fill: #141414;
-      stroke: #444444;
-    }
-
-    /* Dashboard UI */
+    /* Nothing Style Dashboard */
     .dashboard {
       position: absolute; top: 20px; left: 20px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
-      backdrop-filter: blur(10px); padding: 20px; border-radius: 4px; width: 260px;
+      backdrop-filter: blur(12px); padding: 20px; border-radius: 4px; width: 260px;
       box-shadow: 0 0 30px rgba(0,0,0,0.9);
+      pointer-events: auto;
     }
     .brand-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px; margin-bottom: 15px; }
     .brand-title { font-size: 12px; letter-spacing: 2px; }
@@ -67,18 +50,18 @@
     .stat-number { font-size: 36px; font-weight: bold; }
     .stat-label { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; margin-top: 4px; }
 
-    /* Admin Button */
+    /* Top Right Login Button */
     .admin-btn {
       position: absolute; top: 20px; right: 20px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
       color: var(--glyph-white); padding: 10px 16px; font-size: 11px;
-      cursor: pointer; backdrop-filter: blur(10px); border-radius: 4px;
+      cursor: pointer; backdrop-filter: blur(12px); border-radius: 4px;
       letter-spacing: 1.5px; transition: all 0.2s;
     }
     .admin-btn:hover { border-color: var(--glyph-white); background: #1f1f1f; }
     .admin-btn.active { border-color: var(--glyph-red); color: var(--glyph-red); }
 
-    /* Auth Modal */
+    /* Login Modal Overlay */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 2000;
@@ -92,26 +75,16 @@
     .modal input {
       width: 100%; background: #161616; border: 1px solid #333;
       color: #fff; padding: 12px; margin-bottom: 15px; font-size: 12px;
+      font-family: 'Space Mono', monospace;
     }
     .modal input:focus { outline: none; border-color: var(--glyph-white); }
     .modal-actions { display: flex; justify-content: space-between; gap: 10px; }
     .btn {
       flex: 1; padding: 12px; background: #fff; color: #000; border: none;
       font-weight: bold; cursor: pointer; font-size: 11px; letter-spacing: 1px;
+      font-family: 'Space Mono', monospace;
     }
     .btn-cancel { background: transparent; color: #888; border: 1px solid #333; }
-
-    /* LED Glow City Point */
-    .glyph-point {
-      fill: #ffffff;
-      filter: drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 12px #ffffff);
-      animation: pulse-glow 2s infinite ease-in-out;
-      cursor: pointer;
-    }
-    @keyframes pulse-glow {
-      0%, 100% { filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 8px #ffffff); opacity: 0.8; }
-      50% { filter: drop-shadow(0 0 10px #ffffff) drop-shadow(0 0 20px #ffffff); opacity: 1; }
-    }
   </style>
 </head>
 <body>
@@ -126,8 +99,8 @@
     <div class="stat-label">CITIES UNLOCKED</div>
   </div>
 
-  <!-- Admin Toggle Button -->
-  <button class="admin-btn" id="admin-btn" onclick="toggleLoginModal()">[ LOGIN ]</button>
+  <!-- Admin Login Button -->
+  <button class="admin-btn" id="admin-btn" onclick="openLoginModal()">[ LOGIN ]</button>
 
   <!-- Login Modal -->
   <div class="modal-overlay" id="login-modal">
@@ -136,39 +109,47 @@
       <input type="email" id="login-email" placeholder="EMAIL">
       <input type="password" id="login-password" placeholder="PASSWORD">
       <div class="modal-actions">
-        <button class="btn btn-cancel" onclick="toggleLoginModal()">CANCEL</button>
+        <button class="btn btn-cancel" onclick="closeLoginModal()">CANCEL</button>
         <button class="btn" onclick="handleLogin()">LOGIN</button>
       </div>
     </div>
   </div>
 
-  <!-- SVG Map Container -->
-  <div id="map-container">
-    <svg id="svg-map"></svg>
-  </div>
+  <!-- Pure Canvas Background Map -->
+  <canvas id="world-canvas"></canvas>
 
   <script>
     // 1. Supabase Setup
     const SUPABASE_URL = 'https://pmrhldqgabasvohsupbn.supabase.co';
-    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // 👈 貼上你喺 Supabase API Keys 複製到的 Key
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // 👈 記得喺 Supabase API Keys 複製 Key 貼過嚟
 
     let supabase = null;
-    if (SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    }
+    try {
+      if (window.supabase && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch(e) { console.warn("Supabase pending config"); }
 
     let currentUser = null;
+    let visitedCities = [];
 
-    // Modal 開關邏輯 (原生 JavaScript，不依賴任何第三方庫)
-    function toggleLoginModal() {
-      const modal = document.getElementById('login-modal');
-      modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
-    }
+    // Modal 開關邏輯
+    function openLoginModal() { document.getElementById('login-modal').style.display = 'flex'; }
+    function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
 
     async function handleLogin() {
-      if (!supabase) return alert('請先喺 index.html 第 129 行貼上 Supabase Key！');
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
+
+      if (!supabase) {
+        // 如果未設定 Supabase Key，啟動前端模擬 Admin 模式
+        currentUser = { email: email || 'admin@glyph.local' };
+        document.getElementById('admin-btn').innerText = '[ ADMIN ON ]';
+        document.getElementById('admin-btn').classList.add('active');
+        closeLoginModal();
+        alert('DEMO ADMIN MODE ACTIVATED.');
+        return;
+      }
 
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
@@ -177,56 +158,121 @@
         currentUser = data.user;
         document.getElementById('admin-btn').innerText = '[ ADMIN ON ]';
         document.getElementById('admin-btn').classList.add('active');
-        toggleLoginModal();
+        closeLoginModal();
         alert('WELCOME BACK, ADMIN.');
       }
     }
 
-    // 2. D3 原生 SVG 極速地圖渲染
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    // 2. Pure Canvas Nothing Phone Style World Renderer
+    const canvas = document.getElementById('world-canvas');
+    const ctx = canvas.getContext('2d');
 
-    const svg = d3.select("#svg-map")
-      .attr("viewBox", [0, 0, width, height]);
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
 
-    const projection = d3.geoMercator()
-      .scale(width / 6.5)
-      .translate([width / 2, height / 1.5]);
-
-    const path = d3.geoPath().projection(projection);
-    const g = svg.append("g");
-
-    // 載入極輕量的世界地圖 TopoJSON (僅幾十 KB，載入速度極快)
-    d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(data => {
-      const countries = topojson.feature(data, data.objects.countries);
-
-      g.selectAll("path")
-        .data(countries.features)
-        .enter().append("path")
-        .attr("class", "country")
-        .attr("d", path);
-
-      // 地圖載入完成後讀取去過的城市數據
-      fetchVisitedCities();
+    window.addEventListener('resize', () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
     });
 
-    // 3. 點擊地圖地點新增城市
-    svg.on("click", async function(event) {
+    // 經緯度轉 Canvas 座標算法 (Mercator)
+    function latLngToXY(lat, lng) {
+      const x = (lng + 180) * (width / 360);
+      const latRad = lat * Math.PI / 180;
+      const mercN = Math.log(Math.tan((Math.PI / 4) + (latRad / 2)));
+      const y = (height / 2) - (width * mercN / (2 * Math.PI));
+      return { x, y };
+    }
+
+    function xyToLatLng(x, y) {
+      const lng = (x / (width / 360)) - 180;
+      const mercN = (height / 2 - y) * (2 * Math.PI) / width;
+      const latRad = 2 * (Math.atan(Math.exp(mercN)) - Math.PI / 4);
+      const lat = latRad * 180 / Math.PI;
+      return { lat, lng };
+    }
+
+    // 動態 Canvas 繪製迴圈 (Animation Loop)
+    let pulseTime = 0;
+    function renderCanvas() {
+      pulseTime += 0.03;
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, width, height);
+
+      // A. 畫 Nothing 點陣科技網格 (Dot Matrix Grid)
+      ctx.fillStyle = '#1c1c1c';
+      const gridSize = 24;
+      for (let x = 0; x < width; x += gridSize) {
+        for (let y = 0; y < height; y += gridSize) {
+          ctx.beginPath();
+          ctx.arc(x, y, 1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // B. 畫 赤紅赤道線 (Accent Red Line)
+      const equator = latLngToXY(0, 0);
+      ctx.strokeStyle = '#22080a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, equator.y);
+      ctx.lineTo(width, equator.y);
+      ctx.stroke();
+
+      // C. 畫去過的城市 -> LED Glow 霓虹發光點
+      visitedCities.forEach(city => {
+        const pt = latLngToXY(city.lat, city.lng);
+
+        // LED 光暈層
+        const glowRadius = 10 + Math.sin(pulseTime) * 4;
+        const gradient = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, glowRadius);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.6)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 核心白點
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 城市標籤字體
+        ctx.fillStyle = '#888888';
+        ctx.font = '10px Space Mono';
+        ctx.fillText(`> ${city.city_name.toUpperCase()}`, pt.x + 10, pt.y + 4);
+      });
+
+      requestAnimationFrame(renderCanvas);
+    }
+
+    renderCanvas();
+
+    // 3. 點擊 Canvas 新增地點
+    canvas.addEventListener('click', async (e) => {
       if (!currentUser) {
-        alert("請先點擊右上角 [ LOGIN ] 登入管理員帳號！");
+        alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號！');
         return;
       }
 
-      const coords = projection.invert(d3.pointer(event));
-      const lng = coords[0];
-      const lat = coords[1];
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const { lat, lng } = xyToLatLng(x, y);
 
       const cityName = prompt(`[ADD CITY] Enter City Name at (${lat.toFixed(2)}, ${lng.toFixed(2)}):`);
       if (!cityName) return;
 
       const country = prompt(`[ADD CITY] Country Name:`) || '';
 
-      if (supabase) {
+      const newCity = { city_name: cityName, country, lat, lng };
+
+      if (supabase && currentUser.id) {
         const { error } = await supabase.from('visited_cities').insert([
           {
             city_code: cityName.substring(0,3).toUpperCase() + Math.floor(Math.random() * 100),
@@ -237,46 +283,29 @@
             is_visited: true
           }
         ]);
-
         if (error) {
           alert('INSERT ERROR: ' + error.message);
           return;
         }
       }
 
-      addGlyphPoint(lat, lng, cityName, country);
-      updateCount(1);
+      visitedCities.push(newCity);
+      document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
     });
 
-    function addGlyphPoint(lat, lng, cityName, country) {
-      const pos = projection([lng, lat]);
-      if (!pos) return;
-
-      g.append("circle")
-        .attr("cx", pos[0])
-        .attr("cy", pos[1])
-        .attr("r", 4)
-        .attr("class", "glyph-point")
-        .append("title")
-        .text(`${cityName.toUpperCase()}, ${country.toUpperCase()}`);
-    }
-
-    function updateCount(addVal) {
-      const countElem = document.getElementById('city-count');
-      const current = parseInt(countElem.innerText);
-      countElem.innerText = (current + addVal).toString().padStart(2, '0');
-    }
-
+    // 4. 讀取 Supabase 資料
     async function fetchVisitedCities() {
       if (!supabase) return;
       try {
         const { data, error } = await supabase.from('visited_cities').select('*');
         if (error || !data) return;
 
-        document.getElementById('city-count').innerText = data.length.toString().padStart(2, '0');
-        data.forEach(city => addGlyphPoint(city.lat, city.lng, city.city_name, city.country));
+        visitedCities = data;
+        document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
       } catch(e){}
     }
+
+    fetchVisitedCities();
   </script>
 </body>
 </html>
