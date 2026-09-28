@@ -20,6 +20,7 @@
       --panel-bg: rgba(12, 12, 12, 0.88);
       --glyph-white: #ffffff;
       --glyph-red: #D71921;
+      --glyph-cyan: #00E5FF;
       --border-color: rgba(255, 255, 255, 0.15);
       --text-muted: #888888;
     }
@@ -77,7 +78,7 @@
     }
     .manage-btn:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.05); }
 
-    /* Region Pack Drawer */
+    /* Pack Drawer */
     .pack-drawer {
       display: none; position: absolute; top: 220px; left: 15px; z-index: 999;
       background: rgba(15, 15, 15, 0.95); border: 1px solid var(--border-color);
@@ -132,7 +133,7 @@
     .city-actions span { cursor: pointer; margin-left: 10px; color: var(--glyph-red); font-weight: bold; }
     .city-actions span:hover { text-decoration: underline; }
 
-    /* Country Cards Overlay */
+    /* Country Cards View Overlay */
     .cards-view-overlay {
       display: none; position: fixed; top: 70px; left: 0; width: 100vw; height: calc(100vh - 70px);
       z-index: 1500; background: rgba(0,0,0,0.94); backdrop-filter: blur(20px);
@@ -144,26 +145,35 @@
     }
 
     .deep-card {
-      position: relative; height: 360px; border-radius: 24px; overflow: hidden;
+      position: relative; height: 380px; border-radius: 24px; overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.12); background-size: cover; background-position: center;
       box-shadow: 0 15px 35px rgba(0,0,0,0.8); transition: transform 0.3s, border-color 0.3s;
       display: flex; flex-direction: column; justify-content: flex-end; padding: 20px;
+      background-color: #1a1a1a;
     }
     .deep-card:hover { transform: translateY(-6px); border-color: rgba(255,255,255,0.4); }
 
     .deep-card-overlay {
       position: absolute; inset: 0;
-      background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.95) 100%);
+      background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.95) 100%);
       z-index: 1;
     }
 
     .deep-card-content { position: relative; z-index: 2; }
     .deep-card-title { font-size: 22px; font-weight: 700; letter-spacing: 1px; color: #ffffff; margin-bottom: 6px; }
-    .deep-card-cities { font-size: 11px; color: #b0b0b0; line-height: 1.5; margin-bottom: 12px; }
-    .deep-card-footer { display: flex; justify-content: space-between; align-items: center; }
-    .deep-pill-badge {
-      background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px);
-      color: #fff; font-size: 10px; padding: 4px 10px; border-radius: 20px; font-weight: bold;
+    .deep-card-cities { font-size: 11px; color: #b0b0b0; line-height: 1.5; margin-bottom: 14px; min-height: 33px; }
+    
+    /* 4. 進度條區塊 UI (Progress Bar System) */
+    .progress-info-row { display: flex; justify-content: space-between; font-size: 9px; color: #aaa; margin-bottom: 6px; font-weight: bold; letter-spacing: 0.5px; }
+    .progress-bar-bg {
+      width: 100%; height: 6px; background: rgba(255, 255, 255, 0.15); border-radius: 4px; overflow: hidden;
+      backdrop-filter: blur(4px);
+    }
+    .progress-bar-fill {
+      height: 100%; background: #ffffff; border-radius: 4px; transition: width 0.8s ease;
+    }
+    .progress-bar-fill.full {
+      background: var(--glyph-cyan); box-shadow: 0 0 10px var(--glyph-cyan);
     }
 
     @media (max-width: 600px) {
@@ -290,22 +300,41 @@
     let visitedCities = [];
     let currentFilter = 'ALL';
 
-    // 全球熱門國家專屬地標高清圖庫 (含 THAILAND 曼谷地標)
-    const COUNTRY_LANDMARKS = {
-      'THAILAND': 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=800&auto=format&fit=crop', // 曼谷寺廟/地標
-      'JAPAN': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&auto=format&fit=crop',
-      'NEW ZEALAND': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&auto=format&fit=crop',
-      'CHINA': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800&auto=format&fit=crop',
-      'TAIWAN': 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=800&auto=format&fit=crop',
+    // 1. 各國家高畫質靜態壁紙 (備用)
+    const STATIC_LANDMARKS = {
       'USA': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
       'UNITED STATES': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
-      'UNITED KINGDOM': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&auto=format&fit=crop',
-      'FRANCE': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop',
-      'NORWAY': 'https://images.unsplash.com/photo-1507272931001-fc06c17e4f43?w=800&auto=format&fit=crop',
-      'MALDIVES': 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&auto=format&fit=crop',
+      'FIJI': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&auto=format&fit=crop',
+      'AUSTRALIA': 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800&auto=format&fit=crop',
+      'JAPAN': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&auto=format&fit=crop',
+      'KOREA': 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800&auto=format&fit=crop',
       'SOUTH KOREA': 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800&auto=format&fit=crop',
       'SINGAPORE': 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=800&auto=format&fit=crop',
-      'DEFAULT': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop'
+      'MALAYSIA': 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=800&auto=format&fit=crop',
+      'GERMANY': 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800&auto=format&fit=crop',
+      'ITALY': 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=800&auto=format&fit=crop',
+      'SWITZERLAND': 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=800&auto=format&fit=crop',
+      '梵蒂岡': 'https://images.unsplash.com/photo-1548625149-fc4a29cf7092?w=800&auto=format&fit=crop',
+      'VATICAN CITY': 'https://images.unsplash.com/photo-1548625149-fc4a29cf7092?w=800&auto=format&fit=crop',
+      'NETHERLANDS': 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=800&auto=format&fit=crop',
+      'ICELAND': 'https://images.unsplash.com/photo-1504893524553-b855bce32c67?w=800&auto=format&fit=crop',
+      'FINLAND': 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&auto=format&fit=crop',
+      'NORWAY': 'https://images.unsplash.com/photo-1507272931001-fc06c17e4f43?w=800&auto=format&fit=crop',
+      'MALDIVES': 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&auto=format&fit=crop',
+      'THAILAND': 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=800&auto=format&fit=crop',
+      'CHINA': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800&auto=format&fit=crop',
+      'TAIWAN': 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=800&auto=format&fit=crop',
+      'NEW ZEALAND': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&auto=format&fit=crop'
+    };
+
+    // 4. 全球主要國家標準目標解鎖城市總數 (Target Cities for Progress Calculation)
+    const COUNTRY_TARGET_CITIES = {
+      'JAPAN': 20, 'CHINA': 20, 'USA': 20, 'UNITED STATES': 20, 'AUSTRALIA': 10,
+      'NEW ZEALAND': 10, 'TAIWAN': 10, 'UNITED KINGDOM': 10, 'GERMANY': 10,
+      'ITALY': 10, 'FRANCE': 10, 'MALAYSIA': 8, 'THAILAND': 8, 'NORWAY': 8,
+      'ICELAND': 6, 'SWITZERLAND': 6, 'FINLAND': 6, 'NETHERLANDS': 5,
+      'FIJI': 3, 'KOREA': 10, 'SOUTH KOREA': 10, 'SINGAPORE': 3, 'MALDIVES': 3,
+      '梵蒂岡': 1, 'VATICAN CITY': 1
     };
 
     const REGION_COLORS = {
@@ -319,6 +348,14 @@
     function cleanCountryName(str) {
       if (!str) return 'UNKNOWN';
       return str.toString().toUpperCase().replace(/\s+/g, ' ').trim();
+    }
+
+    // 1. 動態 Unsplash 風景匹配 API (無縫自動抓取任何國家的壁紙)
+    function getCountryImageUrl(countryName) {
+      const cleaned = cleanCountryName(countryName);
+      if (STATIC_LANDMARKS[cleaned]) return STATIC_LANDMARKS[cleaned];
+      // 找不到備用靜態圖時，透過動態關鍵字調用 Unsplash 高清圖庫
+      return `https://source.unsplash.com/800x600/?${encodeURIComponent(cleaned)},landmark,scenery`;
     }
 
     function switchView(view) {
@@ -385,6 +422,7 @@
     let zoomLevel = 1.0;
     let targetZoom = 1.0;
     let panOffset = { x: 0, y: 0 };
+    let targetPan = { x: 0, y: 0 };
     let isDragging = false;
     let dragStart = { x: 0, y: 0 };
 
@@ -400,6 +438,8 @@
       if (!isDragging) return;
       panOffset.x = e.clientX - dragStart.x;
       panOffset.y = e.clientY - dragStart.y;
+      targetPan.x = panOffset.x;
+      targetPan.y = panOffset.y;
     });
 
     window.addEventListener('mouseup', () => { isDragging = false; });
@@ -415,10 +455,16 @@
       height = canvas.height = window.innerHeight;
     });
 
+    // 2. 當點擊 "ALL" 時平滑重置全圖視角 (Zoom back to whole map)
     function setFilter(region, element) {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
       currentFilter = region;
+
+      if (region === 'ALL') {
+        targetZoom = 1.0;
+        targetPan = { x: 0, y: 0 };
+      }
 
       const drawer = document.getElementById('pack-drawer');
       const drawerTitle = document.getElementById('drawer-title');
@@ -468,7 +514,11 @@
     let pulseTime = 0;
     function renderCanvas() {
       pulseTime += 0.03;
+
+      // 平滑內插移動與縮放
       zoomLevel += (targetZoom - zoomLevel) * 0.1;
+      panOffset.x += (targetPan.x - panOffset.x) * 0.1;
+      panOffset.y += (targetPan.y - panOffset.y) * 0.1;
 
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
@@ -564,8 +614,8 @@
 
     renderCanvas();
 
-    canvas.addEventListener('click', (e) => {
-      if (isDragging && (Math.abs(panOffset.x) > 5 || Math.abs(panOffset.y) > 5)) return;
+    // 3. 改為「雙擊地圖 (Double Click)」才觸發新增，徹底避免滑動拖拉誤觸！
+    canvas.addEventListener('dblclick', (e) => {
       if (!currentUser) {
         alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號！');
         return;
@@ -654,6 +704,7 @@
       renderCityManageList();
     }
 
+    // 4. 卡片進度條與幾多% (Target Cities Exploration Progress System)
     function renderCountryCards() {
       const container = document.getElementById('cards-container');
       container.innerHTML = '';
@@ -674,8 +725,14 @@
 
       countries.forEach(country => {
         const citiesList = grouped[country].join(', ');
-        const count = grouped[country].length;
-        const bgImg = COUNTRY_LANDMARKS[country] || COUNTRY_LANDMARKS['DEFAULT'];
+        const visitedCount = grouped[country].length;
+        
+        // 取得該國目標城市數 (預設 10 個城市)
+        const targetCount = COUNTRY_TARGET_CITIES[country] || 10;
+        const progressPercent = Math.min(100, Math.round((visitedCount / targetCount) * 100));
+        const isFull = progressPercent >= 100;
+
+        const bgImg = getCountryImageUrl(country);
 
         const card = document.createElement('div');
         card.className = 'deep-card';
@@ -686,8 +743,14 @@
           <div class="deep-card-content">
             <div class="deep-card-title">#${country}</div>
             <div class="deep-card-cities">the cities has been to: ${citiesList}</div>
-            <div class="deep-card-footer">
-              <div class="deep-pill-badge">${count} CITIES EXPLORED</div>
+            
+            <!-- 探索進度條與數據 -->
+            <div class="progress-info-row">
+              <span>EXPLORED ${visitedCount}/${targetCount} CITIES</span>
+              <span>${progressPercent}%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill ${isFull ? 'full' : ''}" style="width: ${progressPercent}%;"></div>
             </div>
           </div>
         `;
