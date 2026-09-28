@@ -163,20 +163,21 @@
       transform: rotateY(180deg);
     }
 
-    /* Card Front & Back Common Styles */
+    /* 徹底修復透底 Bug：嚴格設置 backface-visibility: hidden */
     .deep-card-front, .deep-card-back {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
-      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden !important;
+      backface-visibility: hidden !important;
       border-radius: 24px;
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.12);
       box-shadow: 0 15px 35px rgba(0,0,0,0.8);
     }
 
-    /* Front Design */
+    /* 正面樣式 */
     .deep-card-front {
       background-size: cover;
       background-position: center;
@@ -209,7 +210,7 @@
       background: var(--glyph-cyan); box-shadow: 0 0 10px var(--glyph-cyan);
     }
 
-    /* Back Design (National Flag View) */
+    /* 卡片背面：簡潔極致，僅國旗 + 國名 */
     .deep-card-back {
       transform: rotateY(180deg);
       background: #0a0a0a;
@@ -222,13 +223,13 @@
     }
 
     .flag-large-img {
-      width: 140px;
-      height: 95px;
+      width: 150px;
+      height: 100px;
       object-fit: cover;
       border-radius: 8px;
-      box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
     .flag-country-name {
@@ -236,13 +237,6 @@
       font-weight: bold;
       letter-spacing: 2px;
       color: #ffffff;
-      margin-bottom: 8px;
-    }
-
-    .flag-hint {
-      font-size: 9px;
-      color: #666;
-      letter-spacing: 1px;
     }
 
     @media (max-width: 600px) {
@@ -369,21 +363,21 @@
     let visitedCities = [];
     let currentFilter = 'ALL';
 
-    // 修正: 梵蒂岡 (VATICAN CITY) 採用準確的聖伯多祿大殿 (St. Peter's Basilica) 高清壁紙
+    // 修正：KOREA 使用首爾景福宮經典夜景高清圖
     const STATIC_LANDMARKS = {
       'USA': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
       'UNITED STATES': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
       'FIJI': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&auto=format&fit=crop',
       'AUSTRALIA': 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800&auto=format&fit=crop',
       'JAPAN': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&auto=format&fit=crop',
-      'KOREA': 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800&auto=format&fit=crop',
-      'SOUTH KOREA': 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800&auto=format&fit=crop',
+      'KOREA': 'https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800&auto=format&fit=crop', // 首爾宮殿夜景
+      'SOUTH KOREA': 'https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800&auto=format&fit=crop',
       'SINGAPORE': 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=800&auto=format&fit=crop',
       'MALAYSIA': 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=800&auto=format&fit=crop',
       'GERMANY': 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800&auto=format&fit=crop',
       'ITALY': 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=800&auto=format&fit=crop',
       'SWITZERLAND': 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=800&auto=format&fit=crop',
-      '梵蒂岡': 'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=800&auto=format&fit=crop', // 正確聖伯多祿大殿
+      '梵蒂岡': 'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=800&auto=format&fit=crop',
       'VATICAN CITY': 'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=800&auto=format&fit=crop',
       'NETHERLANDS': 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=800&auto=format&fit=crop',
       'ICELAND': 'https://images.unsplash.com/photo-1504893524553-b855bce32c67?w=800&auto=format&fit=crop',
@@ -396,7 +390,6 @@
       'NEW ZEALAND': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&auto=format&fit=crop'
     };
 
-    // 國家 ISO 碼表（用於加載背面高清大國旗）
     const COUNTRY_FLAG_CODES = {
       'JAPAN': 'jp', 'NEW ZEALAND': 'nz', 'CHINA': 'cn', 'USA': 'us', 'UNITED STATES': 'us',
       'UNITED KINGDOM': 'gb', 'UK': 'gb', 'FRANCE': 'fr', 'GERMANY': 'de', 'ITALY': 'it',
@@ -777,7 +770,7 @@
       renderCityManageList();
     }
 
-    // 渲染卡片 + 點擊翻牌展示國旗 (3D Flip Card Effect)
+    // 翻牌卡片：背面純粹極簡 (只有國旗 + 國名)
     function renderCountryCards() {
       const container = document.getElementById('cards-container');
       container.innerHTML = '';
@@ -816,7 +809,7 @@
 
         card.innerHTML = `
           <div class="flip-card-inner">
-            <!-- 正面: 高級沉浸式風光與進度 -->
+            <!-- 正面 -->
             <div class="deep-card-front" style="background-image: url('${bgImg}');">
               <div class="deep-card-overlay"></div>
               <div class="deep-card-content">
@@ -833,11 +826,10 @@
               </div>
             </div>
 
-            <!-- 背面: 翻牌展示國家國旗 (National Flag Back) -->
+            <!-- 背面: 極簡黑底國旗視角 (Clean Flag View Only) -->
             <div class="deep-card-back">
               <img class="flag-large-img" src="${flagUrl}" alt="${country} flag">
-              <div class="flag-country-name">${country}</div>
-              <div class="flag-hint">[ CLICK TO FLIP BACK ]</div>
+              <div class="flag-country-name">#${country}</div>
             </div>
           </div>
         `;
