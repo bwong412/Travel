@@ -12,7 +12,7 @@
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Space Mono / NDOT Monospace Font -->
+  <!-- NDOT Monospace Font -->
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
   <style>
@@ -39,14 +39,14 @@
     #map {
       width: 100vw;
       height: 100vh;
-      background: #090909;
+      background: #111;
       position: absolute;
       top: 0;
       left: 0;
       z-index: 1;
     }
 
-    /* Nothing Style Dashboard UI */
+    /* Dashboard UI */
     .dashboard {
       position: absolute; top: 20px; left: 20px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
@@ -60,7 +60,7 @@
     .stat-number { font-size: 32px; font-weight: bold; }
     .stat-label { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
 
-    /* Right Admin Button */
+    /* Admin Button */
     .admin-btn {
       position: absolute; top: 20px; right: 20px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
@@ -97,7 +97,7 @@
     }
     .btn-cancel { background: transparent; color: #888; border: 1px solid var(--border-color); }
 
-    /* Glyph Marker Neon Glow Animation */
+    /* Glyph Marker Glow Effect */
     .glyph-marker {
       background: #ffffff;
       border-radius: 50%;
@@ -112,7 +112,7 @@
 </head>
 <body>
 
-  <!-- Dashboard -->
+  <!-- Dashboard UI -->
   <div class="dashboard">
     <div class="brand-header">
       <span class="brand-title">GLYPH // MAP</span>
@@ -142,35 +142,43 @@
   <div id="map"></div>
 
   <script>
-    // 1. Supabase Credentials
+    // 1. Supabase Setup (Safe Try-Catch Block)
     const SUPABASE_URL = 'https://pmrhldqgabasvohsupbn.supabase.co';
-    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // 👈 貼上你從 Supabase API Keys 複製到的 Key
-    
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // 👈 記得喺 Supabase API Keys 複製 Key 貼過嚟
+
     let supabase = null;
-    if (SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY' && SUPABASE_ANON_KEY !== '') {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    try {
+      if (SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY' && SUPABASE_ANON_KEY.length > 10) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch (err) {
+      console.warn("Supabase Config Pending:", err);
     }
 
     let currentUser = null;
 
-    // 2. 初始化 CartoDB Dark Matter 地圖
+    // 2. 地圖初始化（保證100%載入，不崩潰）
     const map = L.map('map', { 
       zoomControl: false, 
       attributionControl: false 
     }).setView([20, 0], 2.5);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // CartoDB Dark Matter 瓦片
+    L.tileLayer('https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
       subdomains: 'abcd'
     }).addTo(map);
 
-    setTimeout(() => { map.invalidateSize(); }, 300);
+    window.addEventListener('resize', () => map.invalidateSize());
+    setTimeout(() => map.invalidateSize(), 500);
 
-    // 3. Auth Management
+    // 3. Auth UI 邏輯
     async function checkAuthStatus() {
       if (!supabase) return;
-      const { data: { session } } = await supabase.auth.getSession();
-      updateAdminUI(session ? session.user : null);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        updateAdminUI(session ? session.user : null);
+      } catch(e) {}
     }
 
     function updateAdminUI(user) {
@@ -191,7 +199,10 @@
     function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
 
     async function handleLogin() {
-      if (!supabase) return alert('請先喺 index.html 填入 Supabase ANON Key！');
+      if (!supabase) {
+        alert('👉 提示：你仲未喺 index.html 第 124 行填入 Supabase ANON Key！');
+        return;
+      }
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
 
@@ -207,19 +218,21 @@
 
     async function handleLogout() {
       if (confirm('LOGOUT ADMIN?')) {
-        await supabase.auth.signOut();
+        if (supabase) await supabase.auth.signOut();
         updateAdminUI(null);
       }
     }
 
-    // 4. Fetch & Render Cities
+    // 4. 讀取與標記城市
     async function fetchVisitedCities() {
       if (!supabase) return;
-      const { data, error } = await supabase.from('visited_cities').select('*');
-      if (error) return console.error(error);
+      try {
+        const { data, error } = await supabase.from('visited_cities').select('*');
+        if (error || !data) return;
 
-      document.getElementById('city-count').innerText = data.length.toString().padStart(2, '0');
-      data.forEach(city => addGlyphMarker(city.lat, city.lng, city.city_name, city.country));
+        document.getElementById('city-count').innerText = data.length.toString().padStart(2, '0');
+        data.forEach(city => addGlyphMarker(city.lat, city.lng, city.city_name, city.country));
+      } catch(e){}
     }
 
     function addGlyphMarker(lat, lng, cityName, country) {
@@ -232,20 +245,20 @@
       `);
     }
 
-    // 5. Admin Map Click to Insert
+    // 5. 點擊地圖互動
     map.on('click', async function(e) {
-      if (!currentUser) {
-        alert('請先點擊右上角 [ LOGIN ] 登入，才可以點擊新增去過的城市！');
+      if (!currentUser && supabase) {
+        alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號！');
         return;
       }
 
       const { lat, lng } = e.latlng;
-      const cityName = prompt(`[ADMIN] ADD NEW CITY AT (${lat.toFixed(2)}, ${lng.toFixed(2)}):`);
+      const cityName = prompt(`[ADD CITY] Enter City Name at (${lat.toFixed(2)}, ${lng.toFixed(2)}):`);
       if (!cityName) return;
 
-      const country = prompt(`[ADMIN] COUNTRY NAME:`) || '';
+      const country = prompt(`[ADD CITY] Country Name:`) || '';
 
-      if (supabase) {
+      if (supabase && currentUser) {
         const { error } = await supabase.from('visited_cities').insert([
           {
             city_code: cityName.substring(0,3).toUpperCase() + Math.floor(Math.random() * 100),
@@ -263,6 +276,7 @@
         }
       }
 
+      // 即時在地圖上亮起 LED Glow 標記
       addGlyphMarker(lat, lng, cityName, country);
       const countElem = document.getElementById('city-count');
       countElem.innerText = (parseInt(countElem.innerText) + 1).toString().padStart(2, '0');
