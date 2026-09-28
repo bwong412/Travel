@@ -53,14 +53,12 @@
     }
     .filter-chip:hover, .filter-chip.active { background: #fff; color: #000; font-weight: bold; }
 
-    /* Manage Button */
     .manage-btn {
       width: 100%; margin-top: 12px; background: transparent; border: 1px solid var(--border-color);
       color: #aaa; font-size: 10px; padding: 6px; cursor: pointer; letter-spacing: 1px; text-align: center;
     }
     .manage-btn:hover { border-color: #fff; color: #fff; }
 
-    /* Admin Login Button */
     .admin-btn {
       position: absolute; top: 20px; right: 20px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
@@ -71,7 +69,7 @@
     .admin-btn:hover { border-color: var(--glyph-white); background: #1f1f1f; }
     .admin-btn.active { border-color: var(--glyph-red); color: var(--glyph-red); }
 
-    /* Modals */
+    /* Nothing Style Custom Dark Modals */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 2000;
@@ -82,18 +80,20 @@
       padding: 25px; width: 360px; max-height: 80vh; overflow-y: auto; border-radius: 4px; box-shadow: 0 0 40px rgba(0,0,0,0.9);
     }
     .modal h3 { font-size: 12px; margin-bottom: 15px; letter-spacing: 1px; color: #fff; }
-    .modal input {
+    .modal label { font-size: 10px; color: #888; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+    .modal input, .modal select {
       width: 100%; background: #161616; border: 1px solid #333;
-      color: #fff; padding: 10px; margin-bottom: 12px; font-size: 12px;
+      color: #fff; padding: 10px; margin-bottom: 14px; font-size: 12px;
+      font-family: 'Space Mono', monospace; border-radius: 2px;
     }
-    .modal-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 15px; }
+    .modal input:focus, .modal select:focus { outline: none; border-color: var(--glyph-white); }
+    .modal-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; }
     .btn {
       flex: 1; padding: 10px; background: #fff; color: #000; border: none;
       font-weight: bold; cursor: pointer; font-size: 11px; letter-spacing: 1px;
     }
     .btn-cancel { background: transparent; color: #888; border: 1px solid #333; }
 
-    /* City Manage List Item */
     .city-item {
       display: flex; justify-content: space-between; align-items: center;
       padding: 8px 0; border-bottom: 1px solid #222; font-size: 11px;
@@ -124,7 +124,6 @@
       <div class="filter-chip" onclick="setFilter('OCEANIA', this)">OCEANIA</div>
     </div>
 
-    <!-- Manage Cities Modal Trigger -->
     <button class="manage-btn" onclick="openManageModal()">[ EDIT / DELETE CITIES ]</button>
   </div>
 
@@ -135,11 +134,42 @@
   <div class="modal-overlay" id="login-modal">
     <div class="modal">
       <h3>ADMIN // AUTHENTICATION</h3>
-      <input type="email" id="login-email" placeholder="EMAIL">
-      <input type="password" id="login-password" placeholder="PASSWORD">
+      <label>EMAIL</label>
+      <input type="email" id="login-email" placeholder="admin@example.com">
+      <label>PASSWORD</label>
+      <input type="password" id="login-password" placeholder="••••••••">
       <div class="modal-actions">
         <button class="btn btn-cancel" onclick="closeLoginModal()">CANCEL</button>
         <button class="btn" onclick="handleLogin()">LOGIN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Dark Modal for Adding City (取代白底 Prompt) -->
+  <div class="modal-overlay" id="add-city-modal">
+    <div class="modal">
+      <h3>ADD NEW UNLOCKED CITY</h3>
+      <label>COORDINATES</label>
+      <input type="text" id="add-coords" readonly style="color: #666; background: #111;">
+      
+      <label>CITY NAME</label>
+      <input type="text" id="add-city-name" placeholder="e.g. TOKYO">
+      
+      <label>COUNTRY NAME</label>
+      <input type="text" id="add-country-name" placeholder="e.g. JAPAN">
+      
+      <label>REGION / CONTINENT</label>
+      <select id="add-region">
+        <option value="ASIA">ASIA (亞洲)</option>
+        <option value="EUROPE">EUROPE (歐洲)</option>
+        <option value="AMERICAS">AMERICAS (美洲)</option>
+        <option value="AFRICA">AFRICA (非洲)</option>
+        <option value="OCEANIA">OCEANIA (大洋洲)</option>
+      </select>
+
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeAddCityModal()">CANCEL</button>
+        <button class="btn" onclick="confirmAddCity()">SAVE CITY</button>
       </div>
     </div>
   </div>
@@ -172,11 +202,33 @@
     let currentUser = null;
     let visitedCities = [];
     let currentFilter = 'ALL';
+    let pendingCoords = null;
 
     function openLoginModal() { document.getElementById('login-modal').style.display = 'flex'; }
     function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
     function openManageModal() { renderCityManageList(); document.getElementById('manage-modal').style.display = 'flex'; }
     function closeManageModal() { document.getElementById('manage-modal').style.display = 'none'; }
+
+    function openAddCityModal(lat, lng) {
+      pendingCoords = { lat, lng };
+      document.getElementById('add-coords').value = `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+      document.getElementById('add-city-name').value = '';
+      document.getElementById('add-country-name').value = '';
+      
+      // 根據點擊經緯度自動預判大洲，免去手選麻煩
+      if (lng > 60 && lng < 150 && lat > 0) document.getElementById('add-region').value = 'ASIA';
+      else if (lng > -15 && lng < 50 && lat > 35) document.getElementById('add-region').value = 'EUROPE';
+      else if (lng < -30) document.getElementById('add-region').value = 'AMERICAS';
+      else if (lng > -20 && lng < 55 && lat <= 35 && lat > -35) document.getElementById('add-region').value = 'AFRICA';
+      else if (lng >= 110 && lat < 0) document.getElementById('add-region').value = 'OCEANIA';
+
+      document.getElementById('add-city-modal').style.display = 'flex';
+    }
+
+    function closeAddCityModal() {
+      document.getElementById('add-city-modal').style.display = 'none';
+      pendingCoords = null;
+    }
 
     async function handleLogin() {
       const email = document.getElementById('login-email').value;
@@ -196,7 +248,7 @@
       }
     }
 
-    // 1. D3 Canvas setup
+    // Canvas Engine
     const canvas = document.getElementById('world-canvas');
     const ctx = canvas.getContext('2d');
 
@@ -219,7 +271,6 @@
       projection.scale(scaleVal).translate(centerPos);
     }
 
-    // 大洲 Filter 定位視角轉換
     function setFilter(region, element) {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
@@ -241,7 +292,6 @@
       updateProjection();
     }
 
-    // 載入世界幾何圖形
     let worldGeoData = null;
     fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
       .then(res => res.json())
@@ -256,7 +306,7 @@
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
 
-      // A. Nothing Dot Matrix
+      // Dot Matrix Background
       ctx.fillStyle = '#181818';
       const gridSize = 24;
       for (let x = 0; x < width; x += gridSize) {
@@ -267,7 +317,7 @@
         }
       }
 
-      // B. 世界陸地輪廓 (國界線)
+      // Render World Map Boundaries
       if (window.topojson && worldGeoData) {
         const countries = topojson.feature(worldGeoData, worldGeoData.objects.countries);
         ctx.beginPath();
@@ -279,8 +329,10 @@
         ctx.stroke();
       }
 
-      // C. 繪製 Glow 城市標記點
+      // Render Filtered Glow Cities
       visitedCities.forEach(city => {
+        if (currentFilter !== 'ALL' && city.region && city.region !== currentFilter) return;
+
         const pt = projection([city.lng, city.lat]);
         if (!pt) return;
 
@@ -310,8 +362,8 @@
 
     renderCanvas();
 
-    // 2. Click Canvas to Add City
-    canvas.addEventListener('click', async (e) => {
+    // Click Canvas to Trigger Custom Dark Modal
+    canvas.addEventListener('click', (e) => {
       if (!currentUser) {
         alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號！');
         return;
@@ -324,13 +376,19 @@
       const coords = projection.invert([x, y]);
       if (!coords) return;
 
-      const lng = coords[0];
-      const lat = coords[1];
+      openAddCityModal(coords[1], coords[0]);
+    });
 
-      const cityName = prompt(`[ADD CITY] City Name at (${lat.toFixed(2)}, ${lng.toFixed(2)}):`);
-      if (!cityName) return;
+    async function confirmAddCity() {
+      if (!pendingCoords) return;
 
-      const country = prompt(`[ADD CITY] Country Name:`) || '';
+      const cityName = document.getElementById('add-city-name').value.trim();
+      const country = document.getElementById('add-country-name').value.trim();
+      const region = document.getElementById('add-region').value;
+
+      if (!cityName) return alert('請輸入城市名稱！');
+
+      const { lat, lng } = pendingCoords;
 
       if (supabaseClient) {
         const { data, error } = await supabaseClient.from('visited_cities').insert([
@@ -338,6 +396,7 @@
             city_code: cityName.substring(0,3).toUpperCase() + Math.floor(Math.random() * 100),
             city_name: cityName,
             country: country,
+            region: region,
             lat: lat,
             lng: lng,
             is_visited: true
@@ -350,13 +409,13 @@
         }
         if (data) visitedCities.push(data[0]);
       } else {
-        visitedCities.push({ city_name: cityName, country, lat, lng });
+        visitedCities.push({ city_name: cityName, country, region, lat, lng });
       }
 
       document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
-    });
+      closeAddCityModal();
+    }
 
-    // 3. Edit & Delete Logic
     function renderCityManageList() {
       const container = document.getElementById('city-list-container');
       container.innerHTML = '';
@@ -370,9 +429,8 @@
         const div = document.createElement('div');
         div.className = 'city-item';
         div.innerHTML = `
-          <span>> ${city.city_name.toUpperCase()} (${(city.country || 'N/A').toUpperCase()})</span>
+          <span>> ${city.city_name.toUpperCase()} [${city.region || 'ASIA'}]</span>
           <div class="city-actions">
-            <span class="edit" onclick="editCity(${index})">[EDIT]</span>
             <span onclick="deleteCity(${index})">[DEL]</span>
           </div>
         `;
@@ -392,21 +450,6 @@
 
       visitedCities.splice(index, 1);
       document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
-      renderCityManageList();
-    }
-
-    async function editCity(index) {
-      if (!currentUser) return alert('請先登入管理員！');
-      const target = visitedCities[index];
-      const newName = prompt('Edit City Name:', target.city_name);
-      if (!newName) return;
-
-      if (supabaseClient && target.id) {
-        const { error } = await supabaseClient.from('visited_cities').update({ city_name: newName }).eq('id', target.id);
-        if (error) return alert('UPDATE ERROR: ' + error.message);
-      }
-
-      target.city_name = newName;
       renderCityManageList();
     }
 
