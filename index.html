@@ -2,7 +2,7 @@
 <html lang="zh-HK">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>GLYPH // TRAVEL MAP</title>
   
   <!-- Supabase & D3 Libraries -->
@@ -12,20 +12,20 @@
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 
   <!-- Space Mono Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
   <style>
     :root {
       --bg-color: #000000;
-      --panel-bg: rgba(15, 15, 15, 0.85);
+      --panel-bg: rgba(12, 12, 12, 0.88);
       --glyph-white: #ffffff;
       --glyph-red: #D71921;
-      --border-color: #2a2a2a;
+      --border-color: rgba(255, 255, 255, 0.15);
       --text-muted: #888888;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Mono', monospace; }
-    html, body { width: 100%; height: 100%; background-color: var(--bg-color); color: var(--glyph-white); overflow: hidden; }
+    html, body { width: 100%; height: 100%; background-color: var(--bg-color); color: var(--glyph-white); overflow: hidden; touch-action: none; }
 
     #world-canvas {
       position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -33,52 +33,67 @@
     }
     #world-canvas:active { cursor: grabbing; }
 
-    /* Top Navigation Bar */
+    /* 1. 頂部導航欄 (Mobile Adapted) */
     .top-nav {
-      position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000;
+      position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
-      backdrop-filter: blur(16px); padding: 6px 12px; border-radius: 30px;
-      display: flex; gap: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.8);
+      backdrop-filter: blur(16px); padding: 4px 8px; border-radius: 30px;
+      display: flex; gap: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      max-width: 90vw;
     }
     .nav-btn {
-      background: transparent; border: none; color: #888; font-size: 11px;
-      padding: 8px 16px; cursor: pointer; border-radius: 20px; letter-spacing: 1.5px;
-      transition: all 0.2s; font-weight: bold;
+      background: transparent; border: none; color: #888; font-size: 10px;
+      padding: 6px 12px; cursor: pointer; border-radius: 20px; letter-spacing: 1px;
+      transition: all 0.2s; font-weight: bold; white-space: nowrap;
     }
     .nav-btn:hover, .nav-btn.active { background: #ffffff; color: #000000; }
 
-    /* Dashboard Panel */
+    /* Dashboard 面板 (Mobile Friendly) */
     .dashboard {
-      position: absolute; top: 20px; left: 20px; z-index: 1000;
+      position: absolute; top: 15px; left: 15px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
-      backdrop-filter: blur(12px); padding: 20px; border-radius: 4px; width: 260px;
-      box-shadow: 0 0 30px rgba(0,0,0,0.9); pointer-events: auto;
+      backdrop-filter: blur(16px); padding: 14px; border-radius: 8px; width: 220px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.9); pointer-events: auto;
     }
-    .brand-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px; margin-bottom: 15px; }
-    .brand-title { font-size: 12px; letter-spacing: 2px; }
-    .red-dot { width: 8px; height: 8px; background-color: var(--glyph-red); border-radius: 50%; box-shadow: 0 0 10px var(--glyph-red); }
-    .stat-number { font-size: 36px; font-weight: bold; }
-    .stat-label { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; margin-top: 4px; }
+    .brand-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 8px; margin-bottom: 10px; }
+    .brand-title { font-size: 10px; letter-spacing: 1.5px; }
+    .red-dot { width: 6px; height: 6px; background-color: var(--glyph-red); border-radius: 50%; box-shadow: 0 0 8px var(--glyph-red); }
+    .stat-number { font-size: 28px; font-weight: bold; }
+    .stat-label { font-size: 9px; color: var(--text-muted); letter-spacing: 1px; }
 
-    /* Filter Menu */
-    .filter-container { margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+    /* 分類 Chip */
+    .filter-container { margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
     .filter-chip {
       background: #151515; border: 1px solid var(--border-color); color: #888;
-      font-size: 9px; padding: 4px 8px; cursor: pointer; border-radius: 2px; letter-spacing: 1px;
+      font-size: 8px; padding: 4px 6px; cursor: pointer; border-radius: 2px; letter-spacing: 0.5px;
     }
     .filter-chip:hover, .filter-chip.active { background: #fff; color: #000; font-weight: bold; }
 
+    /* 2. 大洲卡包式下拉面板 (Card Pack Drawer) */
+    .pack-drawer {
+      display: none; position: absolute; top: 180px; left: 15px; z-index: 999;
+      background: rgba(15, 15, 15, 0.95); border: 1px solid var(--border-color);
+      backdrop-filter: blur(20px); border-radius: 8px; width: 220px; max-height: 50vh;
+      overflow-y: auto; padding: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.9);
+      animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .drawer-title { font-size: 10px; font-weight: bold; color: var(--glyph-white); letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #222; padding-bottom: 4px; }
+    .drawer-country { font-size: 10px; font-weight: bold; color: #fff; margin-top: 8px; }
+    .drawer-cities { font-size: 9px; color: #777; margin-bottom: 6px; line-height: 1.4; }
+
+    /* Admin Login 按鈕 */
     .admin-btn {
-      position: absolute; top: 20px; right: 20px; z-index: 1000;
+      position: absolute; top: 15px; right: 15px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
-      color: var(--glyph-white); padding: 10px 16px; font-size: 11px;
+      color: var(--glyph-white); padding: 8px 12px; font-size: 9px;
       cursor: pointer; backdrop-filter: blur(12px); border-radius: 4px;
-      letter-spacing: 1.5px; transition: all 0.2s; font-family: 'Space Mono', monospace;
+      letter-spacing: 1px; transition: all 0.2s; font-family: 'Space Mono', monospace;
     }
     .admin-btn:hover { border-color: var(--glyph-white); background: #1f1f1f; }
     .admin-btn.active { border-color: var(--glyph-red); color: var(--glyph-red); }
 
-    /* Dark Modals */
+    /* Modals */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 2000;
@@ -86,77 +101,64 @@
     }
     .modal {
       background: #0d0d0d; border: 1px solid #333;
-      padding: 25px; width: 360px; max-height: 80vh; overflow-y: auto; border-radius: 4px; box-shadow: 0 0 40px rgba(0,0,0,0.9);
+      padding: 20px; width: 320px; max-height: 80vh; overflow-y: auto; border-radius: 6px; box-shadow: 0 0 40px rgba(0,0,0,0.9);
     }
-    .modal h3 { font-size: 12px; margin-bottom: 15px; letter-spacing: 1px; color: #fff; }
-    .modal label { font-size: 10px; color: #888; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+    .modal h3 { font-size: 11px; margin-bottom: 12px; letter-spacing: 1px; color: #fff; }
+    .modal label { font-size: 9px; color: #888; letter-spacing: 1px; display: block; margin-bottom: 4px; }
     .modal input, .modal select {
       width: 100%; background: #161616; border: 1px solid #333;
-      color: #fff; padding: 10px; margin-bottom: 14px; font-size: 12px;
+      color: #fff; padding: 8px; margin-bottom: 10px; font-size: 11px;
       font-family: 'Space Mono', monospace; border-radius: 2px;
     }
-    .modal-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; }
+    .modal-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; }
     .btn {
-      flex: 1; padding: 10px; background: #fff; color: #000; border: none;
-      font-weight: bold; cursor: pointer; font-size: 11px; letter-spacing: 1px;
+      flex: 1; padding: 8px; background: #fff; color: #000; border: none;
+      font-weight: bold; cursor: pointer; font-size: 10px; letter-spacing: 1px;
     }
     .btn-cancel { background: transparent; color: #888; border: 1px solid #333; }
 
-    /* 高級精緻地標卡片 Cards View Overlay */
+    /* 5. Pic 2 高級沉浸式卡片 (Full Background Card) */
     .cards-view-overlay {
-      display: none; position: fixed; top: 80px; left: 0; width: 100vw; height: calc(100vh - 80px);
-      z-index: 1500; background: rgba(0,0,0,0.92); backdrop-filter: blur(20px);
-      padding: 30px; overflow-y: auto;
+      display: none; position: fixed; top: 70px; left: 0; width: 100vw; height: calc(100vh - 70px);
+      z-index: 1500; background: rgba(0,0,0,0.94); backdrop-filter: blur(20px);
+      padding: 20px; overflow-y: auto;
     }
     .cards-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px;
       max-width: 1100px; margin: 0 auto;
     }
-    
-    /* 精簡高級卡片 */
-    .landmark-card {
-      background: #0d0d0d; border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px; padding: 12px; overflow: hidden;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.8); transition: transform 0.3s, border-color 0.3s;
-      display: flex; flex-direction: column;
-    }
-    .landmark-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.35); }
-    .landmark-card.full-unlocked { border-color: #00E5FF; box-shadow: 0 0 20px rgba(0, 229, 255, 0.2); }
 
-    .landmark-img-container {
-      width: 100%; height: 130px; border-radius: 12px; overflow: hidden;
-      background-size: cover; background-position: center; position: relative;
-      border: 1px solid rgba(255, 255, 255, 0.05); background-color: #1c1c1c;
+    /* 參考 Pic 2 樣式 */
+    .deep-card {
+      position: relative; height: 360px; border-radius: 24px; overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12); background-size: cover; background-position: center;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.8); transition: transform 0.3s, border-color 0.3s;
+      display: flex; flex-direction: column; justify-content: flex-end; padding: 20px;
     }
-    .landmark-img-badge {
-      position: absolute; top: 8px; right: 8px;
-      background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
-      color: #fff; font-size: 9px; padding: 4px 8px; border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.15); font-weight: bold;
+    .deep-card:hover { transform: translateY(-6px); border-color: rgba(255,255,255,0.4); }
+
+    /* 漸變暗化遮罩 (Gradient Overlay) */
+    .deep-card-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.95) 100%);
+      z-index: 1;
     }
 
-    .card-info { padding: 12px 2px 4px 2px; }
-    .card-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    
-    .card-country-box { display: flex; align-items: center; gap: 8px; }
-    .mini-flag-img { width: 18px; height: 13px; border-radius: 2px; object-fit: cover; box-shadow: 0 0 4px rgba(0,0,0,0.5); }
-    .card-country-name { font-size: 13px; font-weight: bold; letter-spacing: 1px; color: #fff; }
-    
-    .card-badge-percent {
-      background: #1a1a1a; color: #888; font-size: 10px; padding: 3px 8px;
-      border-radius: 10px; font-weight: bold; border: 1px solid #333;
+    .deep-card-content { position: relative; z-index: 2; }
+    .deep-card-title { font-size: 22px; font-weight: 700; letter-spacing: 1px; color: #ffffff; margin-bottom: 6px; }
+    .deep-card-cities { font-size: 11px; color: #b0b0b0; line-height: 1.5; margin-bottom: 12px; }
+    .deep-card-footer { display: flex; justify-content: space-between; align-items: center; }
+    .deep-pill-badge {
+      background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px);
+      color: #fff; font-size: 10px; padding: 4px 10px; border-radius: 20px; font-weight: bold;
     }
-    .card-badge-percent.full { background: #00E5FF; color: #000; border: none; }
 
-    .card-desc { font-size: 10px; color: #777; margin-bottom: 12px; letter-spacing: 0.5px; }
-
-    .progress-bar-bg {
-      width: 100%; height: 5px; background: #222222; border-radius: 3px; overflow: hidden;
+    /* 手機響應式調整 (RWD Rules) */
+    @media (max-width: 600px) {
+      .dashboard { top: 60px; left: 15px; width: calc(100vw - 30px); }
+      .pack-drawer { top: 230px; left: 15px; width: calc(100vw - 30px); }
+      .admin-btn { top: 15px; right: 15px; }
     }
-    .progress-bar-fill {
-      height: 100%; background: #ffffff; border-radius: 3px; transition: width 0.8s ease;
-    }
-    .progress-bar-fill.full { background: #00E5FF; box-shadow: 0 0 8px #00E5FF; }
   </style>
 </head>
 <body>
@@ -176,6 +178,7 @@
     <div class="stat-number" id="city-count">00</div>
     <div class="stat-label">CITIES UNLOCKED</div>
 
+    <!-- Filter Buttons -->
     <div class="filter-container">
       <div class="filter-chip active" onclick="setFilter('ALL', this)">ALL</div>
       <div class="filter-chip" onclick="setFilter('ASIA', this)">ASIA</div>
@@ -184,6 +187,12 @@
       <div class="filter-chip" onclick="setFilter('AFRICA', this)">AFRICA</div>
       <div class="filter-chip" onclick="setFilter('OCEANIA', this)">OCEANIA</div>
     </div>
+  </div>
+
+  <!-- 2. 大洲卡包式向下拉出面板 -->
+  <div class="pack-drawer" id="pack-drawer">
+    <div class="drawer-title" id="drawer-title">REGION // PACK</div>
+    <div id="drawer-content"></div>
   </div>
 
   <!-- Admin Login Button -->
@@ -233,7 +242,7 @@
     </div>
   </div>
 
-  <!-- Country Cards View Overlay -->
+  <!-- Country Cards View Overlay (Pic 2 Reference) -->
   <div class="cards-view-overlay" id="cards-view">
     <div class="cards-grid" id="cards-container"></div>
   </div>
@@ -256,27 +265,18 @@
     let visitedCities = [];
     let currentFilter = 'ALL';
 
-    // 1. 各國家高畫質地標壁紙 (可靠備用圖源)
     const COUNTRY_LANDMARKS = {
-      'JAPAN': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&auto=format&fit=crop',
-      'NEW ZEALAND': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&auto=format&fit=crop',
-      'CHINA': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=600&auto=format&fit=crop',
-      'TAIWAN': 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=600&auto=format&fit=crop', // 台北 101 高清風景
-      'USA': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=600&auto=format&fit=crop',
-      'UNITED STATES': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=600&auto=format&fit=crop',
-      'UNITED KINGDOM': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&auto=format&fit=crop',
-      'FRANCE': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600&auto=format&fit=crop',
-      'NORWAY': 'https://images.unsplash.com/photo-1507272931001-fc06c17e4f43?w=600&auto=format&fit=crop',
-      'MALDIVES': 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=600&auto=format&fit=crop',
-      'DEFAULT': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&auto=format&fit=crop'
-    };
-
-    const COUNTRY_FLAG_CODES = {
-      'JAPAN': 'jp', 'NEW ZEALAND': 'nz', 'CHINA': 'cn', 'USA': 'us', 'UNITED STATES': 'us',
-      'UNITED KINGDOM': 'gb', 'UK': 'gb', 'FRANCE': 'fr', 'GERMANY': 'de', 'ITALY': 'it',
-      'AUSTRALIA': 'au', 'MACAU': 'mo', 'HONG KONG': 'hk', 'TAIWAN': 'tw', 'SINGAPORE': 'sg',
-      'SOUTH KOREA': 'kr', 'THAILAND': 'th', 'VIETNAM': 'vn', 'MALAYSIA': 'my', 'NORWAY': 'no',
-      'MALDIVES': 'mv'
+      'JAPAN': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&auto=format&fit=crop',
+      'NEW ZEALAND': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&auto=format&fit=crop',
+      'CHINA': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800&auto=format&fit=crop',
+      'TAIWAN': 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=800&auto=format&fit=crop',
+      'USA': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
+      'UNITED STATES': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
+      'UNITED KINGDOM': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&auto=format&fit=crop',
+      'FRANCE': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop',
+      'NORWAY': 'https://images.unsplash.com/photo-1507272931001-fc06c17e4f43?w=800&auto=format&fit=crop',
+      'MALDIVES': 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&auto=format&fit=crop',
+      'DEFAULT': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop'
     };
 
     const REGION_COLORS = {
@@ -287,13 +287,9 @@
       'OCEANIA': { core: '#69F0AE', glow: 'rgba(0, 230, 118, ' }
     };
 
-    // 國家名稱正規化清理函數 (徹底解開 New Zealand 出現兩次問題)
     function cleanCountryName(str) {
       if (!str) return 'UNKNOWN';
-      return str.toString()
-        .toUpperCase()
-        .replace(/\s+/g, ' ')
-        .trim();
+      return str.toString().toUpperCase().replace(/\s+/g, ' ').trim();
     }
 
     function switchView(view) {
@@ -348,7 +344,7 @@
       }
     }
 
-    // Canvas Engine
+    // 3. Canvas 平滑平移與阻尼縮放引擎 (Smooth Damped Zoom Engine)
     const canvas = document.getElementById('world-canvas');
     const ctx = canvas.getContext('2d');
 
@@ -356,6 +352,7 @@
     let height = canvas.height = window.innerHeight;
 
     let zoomLevel = 1.0;
+    let targetZoom = 1.0;
     let panOffset = { x: 0, y: 0 };
     let isDragging = false;
     let dragStart = { x: 0, y: 0 };
@@ -376,10 +373,11 @@
 
     window.addEventListener('mouseup', () => { isDragging = false; });
 
+    // 降低縮放敏感度 (Smooth Soft Zoom)
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
-      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-      zoomLevel = Math.max(0.6, Math.min(zoomLevel * zoomFactor, 8.0));
+      const delta = e.deltaY < 0 ? 0.05 : -0.05; // 大幅降低步幅
+      targetZoom = Math.max(0.6, Math.min(targetZoom + delta, 6.0));
     }, { passive: false });
 
     window.addEventListener('resize', () => {
@@ -387,10 +385,48 @@
       height = canvas.height = window.innerHeight;
     });
 
+    // 2. 切換分類並開啟向下拉出的卡包 (Pack Drawer)
     function setFilter(region, element) {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
       currentFilter = region;
+
+      const drawer = document.getElementById('pack-drawer');
+      const drawerTitle = document.getElementById('drawer-title');
+      const drawerContent = document.getElementById('drawer-content');
+
+      if (region === 'ALL') {
+        drawer.style.display = 'none';
+        return;
+      }
+
+      drawerTitle.innerText = `${region} // PACK`;
+      drawerContent.innerHTML = '';
+
+      // 篩選出該大洲的去過國家與城市
+      const filtered = visitedCities.filter(c => c.region === region);
+      const grouped = {};
+      filtered.forEach(c => {
+        const country = cleanCountryName(c.country);
+        if (!grouped[country]) grouped[country] = [];
+        grouped[country].push(c.city_name);
+      });
+
+      const countries = Object.keys(grouped);
+      if (countries.length === 0) {
+        drawerContent.innerHTML = '<div style="font-size:9px; color:#666;">NO CITIES IN THIS REGION YET.</div>';
+      } else {
+        countries.forEach(country => {
+          const div = document.createElement('div');
+          div.innerHTML = `
+            <div class="drawer-country">> ${country}</div>
+            <div class="drawer-cities">${grouped[country].join(', ')}</div>
+          `;
+          drawerContent.appendChild(div);
+        });
+      }
+
+      drawer.style.display = 'block';
     }
 
     let worldGeoData = null;
@@ -404,6 +440,10 @@
     let pulseTime = 0;
     function renderCanvas() {
       pulseTime += 0.03;
+
+      // 平滑內插縮放 (Lerp Zoom Smoothness)
+      zoomLevel += (targetZoom - zoomLevel) * 0.1;
+
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
 
@@ -411,6 +451,7 @@
       ctx.translate(panOffset.x, panOffset.y);
       ctx.scale(zoomLevel, zoomLevel);
 
+      // Dot Matrix
       ctx.fillStyle = '#181818';
       const gridSize = 24;
       for (let x = -width; x < width * 2; x += gridSize) {
@@ -421,15 +462,31 @@
         }
       }
 
+      // 4. 世界地圖 + 去過國家的非常淡霓虹點陣微光 (Ultra-Subtle Glow for Visited Countries)
       if (window.topojson && worldGeoData) {
         const countries = topojson.feature(worldGeoData, worldGeoData.objects.countries);
+        
         ctx.beginPath();
         pathGenerator(countries);
         ctx.fillStyle = '#090909';
         ctx.fill();
-        ctx.strokeStyle = '#262626';
+        ctx.strokeStyle = '#222222';
         ctx.lineWidth = 0.8 / zoomLevel;
         ctx.stroke();
+
+        // 淡燈微光 (Subtle Light Fill)
+        const visitedCountrySet = new Set(visitedCities.map(c => cleanCountryName(c.country)));
+        countries.features.forEach(feature => {
+          const countryName = (feature.properties.name || '').toUpperCase();
+          if (visitedCountrySet.has(countryName)) {
+            ctx.beginPath();
+            pathGenerator(feature);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.035)'; // 非常淡的微光填充
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+            ctx.stroke();
+          }
+        });
       }
 
       const labelBoxes = [];
@@ -510,7 +567,6 @@
       if (!coordsInput || !cityName) return alert('請填寫完整資訊！');
 
       const country = cleanCountryName(countryInput);
-
       const parts = coordsInput.split(',');
       const lat = parseFloat(parts[0].trim());
       const lng = parseFloat(parts[1].trim());
@@ -538,19 +594,19 @@
       closeAddCityModal();
     }
 
-    // 渲染卡片邏輯 (含自動合併 New Zealand 與 Taiwan 高清地圖 Fallback)
+    // 5. 渲染 Pic 2 高級沉浸式卡片 (Pic 2 Reference Cards Renderer)
     function renderCountryCards() {
       const container = document.getElementById('cards-container');
       container.innerHTML = '';
 
-      const countryStats = {};
+      const grouped = {};
       visitedCities.forEach(c => {
-        const normalizedCountry = cleanCountryName(c.country);
-        countryStats[normalizedCountry] = (countryStats[normalizedCountry] || 0) + 1;
+        const country = cleanCountryName(c.country);
+        if (!grouped[country]) grouped[country] = [];
+        grouped[country].push(c.city_name);
       });
 
-      const TARGET_CITIES = { 'JAPAN': 10, 'NEW ZEALAND': 10, 'CHINA': 20, 'USA': 15, 'UNITED STATES': 15, 'UNITED KINGDOM': 8, 'FRANCE': 6, 'NORWAY': 5, 'TAIWAN': 5 };
-      const countries = Object.keys(countryStats);
+      const countries = Object.keys(grouped);
 
       if (countries.length === 0) {
         container.innerHTML = '<div style="color:#666; font-size:12px;">NO CITIES UNLOCKED YET.</div>';
@@ -558,36 +614,21 @@
       }
 
       countries.forEach(country => {
-        const count = countryStats[country];
-        const target = TARGET_CITIES[country] || 10;
-        const percent = Math.min(100, Math.round((count / target) * 100));
-        const isFull = percent >= 100;
-
+        const citiesList = grouped[country].join(', ');
+        const count = grouped[country].length;
         const bgImg = COUNTRY_LANDMARKS[country] || COUNTRY_LANDMARKS['DEFAULT'];
-        const flagCode = COUNTRY_FLAG_CODES[country] || 'un';
-        const flagUrl = `https://flagcdn.com/w40/${flagCode}.png`;
 
         const card = document.createElement('div');
-        card.className = `landmark-card ${isFull ? 'full-unlocked' : ''}`;
+        card.className = 'deep-card';
+        card.style.backgroundImage = `url('${bgImg}')`;
 
         card.innerHTML = `
-          <div class="landmark-img-container" style="background-image: url('${bgImg}');">
-            <div class="landmark-img-badge">${count} CITIES</div>
-          </div>
-
-          <div class="card-info">
-            <div class="card-title-row">
-              <div class="card-country-box">
-                <img class="mini-flag-img" src="${flagUrl}" alt="flag">
-                <div class="card-country-name">${country}</div>
-              </div>
-              <div class="card-badge-percent ${isFull ? 'full' : ''}">${percent}%</div>
-            </div>
-            
-            <div class="card-desc">Explored ${count} of ${target} target cities</div>
-
-            <div class="progress-bar-bg">
-              <div class="progress-bar-fill ${isFull ? 'full' : ''}" style="width: ${percent}%;"></div>
+          <div class="deep-card-overlay"></div>
+          <div class="deep-card-content">
+            <div class="deep-card-title">#${country}</div>
+            <div class="deep-card-cities">the cities has been to: ${citiesList}</div>
+            <div class="deep-card-footer">
+              <div class="deep-pill-badge">${count} CITIES EXPLORED</div>
             </div>
           </div>
         `;
