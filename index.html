@@ -69,7 +69,7 @@
     }
     .filter-chip:hover, .filter-chip.active { background: #fff; color: #000; font-weight: bold; }
 
-    /* 管理數據按鈕 */
+    /* Manage Button */
     .manage-btn {
       width: 100%; margin-top: 10px; background: transparent; border: 1px solid var(--border-color);
       color: #aaa; font-size: 9px; padding: 6px; cursor: pointer; letter-spacing: 1px; text-align: center;
@@ -77,7 +77,7 @@
     }
     .manage-btn:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.05); }
 
-    /* Region Card Pack Drawer */
+    /* Region Pack Drawer */
     .pack-drawer {
       display: none; position: absolute; top: 220px; left: 15px; z-index: 999;
       background: rgba(15, 15, 15, 0.95); border: 1px solid var(--border-color);
@@ -125,7 +125,6 @@
     }
     .btn-cancel { background: transparent; color: #888; border: 1px solid #333; }
 
-    /* Delete Record Item Row */
     .city-item {
       display: flex; justify-content: space-between; align-items: center;
       padding: 8px 0; border-bottom: 1px solid #222; font-size: 10px;
@@ -167,7 +166,6 @@
       color: #fff; font-size: 10px; padding: 4px 10px; border-radius: 20px; font-weight: bold;
     }
 
-    /* RWD */
     @media (max-width: 600px) {
       .dashboard { top: 60px; left: 15px; width: calc(100vw - 30px); }
       .pack-drawer { top: 280px; left: 15px; width: calc(100vw - 30px); }
@@ -202,7 +200,6 @@
       <div class="filter-chip" onclick="setFilter('OCEANIA', this)">OCEANIA</div>
     </div>
 
-    <!-- 刪除 / 編輯城市按鈕 -->
     <button class="manage-btn" onclick="openManageModal()">[ EDIT / DELETE CITIES ]</button>
   </div>
 
@@ -293,7 +290,9 @@
     let visitedCities = [];
     let currentFilter = 'ALL';
 
+    // 全球熱門國家專屬地標高清圖庫 (含 THAILAND 曼谷地標)
     const COUNTRY_LANDMARKS = {
+      'THAILAND': 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=800&auto=format&fit=crop', // 曼谷寺廟/地標
       'JAPAN': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&auto=format&fit=crop',
       'NEW ZEALAND': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&auto=format&fit=crop',
       'CHINA': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800&auto=format&fit=crop',
@@ -304,6 +303,8 @@
       'FRANCE': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop',
       'NORWAY': 'https://images.unsplash.com/photo-1507272931001-fc06c17e4f43?w=800&auto=format&fit=crop',
       'MALDIVES': 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&auto=format&fit=crop',
+      'SOUTH KOREA': 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800&auto=format&fit=crop',
+      'SINGAPORE': 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=800&auto=format&fit=crop',
       'DEFAULT': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop'
     };
 
@@ -616,7 +617,6 @@
       closeAddCityModal();
     }
 
-    // 渲染刪除列表 (Delete City Management Window)
     function renderCityManageList() {
       const container = document.getElementById('city-list-container');
       container.innerHTML = '';
