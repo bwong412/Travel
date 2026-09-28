@@ -12,7 +12,7 @@
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- NDOT / Monospace Style Google Font -->
+  <!-- NDOT / Monospace Style Font -->
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
   <style>
@@ -25,170 +25,225 @@
       --text-muted: #888888;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Space Mono', monospace;
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Mono', monospace; }
+    body { background-color: var(--bg-color); color: var(--glyph-white); height: 100vh; overflow: hidden; }
+
+    #map { height: 100vh; width: 100vw; background: #000; }
+    
+    /* 地圖暗黑瓦片濾鏡 */
+    .leaflet-tile-container img { 
+      filter: brightness(0.4) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3); 
     }
 
-    body {
-      background-color: var(--bg-color);
-      color: var(--glyph-white);
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    #map {
-      height: 100vh;
-      width: 100vw;
-      background: #000000;
-    }
-
-    /* 地圖暗黑濾鏡 */
-    .leaflet-tile-container img {
-      filter: brightness(0.4) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
-    }
-
-    /* Nothing Style Dashboard Panel */
+    /* Dashboard UI */
     .dashboard {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      z-index: 1000;
-      background: var(--panel-bg);
-      border: 1px solid var(--border-color);
-      backdrop-filter: blur(10px);
-      padding: 20px;
-      border-radius: 4px;
-      width: 320px;
+      position: absolute; top: 20px; left: 20px; z-index: 1000;
+      background: var(--panel-bg); border: 1px solid var(--border-color);
+      backdrop-filter: blur(10px); padding: 20px; border-radius: 4px; width: 280px;
       box-shadow: 0 0 20px rgba(0,0,0,0.8);
     }
+    .brand-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px; margin-bottom: 15px; }
+    .brand-title { font-size: 13px; letter-spacing: 2px; }
+    .red-dot { width: 8px; height: 8px; background-color: var(--glyph-red); border-radius: 50%; box-shadow: 0 0 8px var(--glyph-red); }
+    .stat-number { font-size: 32px; font-weight: bold; }
+    .stat-label { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
 
-    .brand-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px dashed var(--border-color);
-      padding-bottom: 10px;
-      margin-bottom: 15px;
-    }
-
-    .brand-title {
-      font-size: 14px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
-
-    .red-dot {
-      width: 8px;
-      height: 8px;
-      background-color: var(--glyph-red);
-      border-radius: 50%;
-      box-shadow: 0 0 8px var(--glyph-red);
-    }
-
-    .stat-box {
-      margin-top: 10px;
-    }
-
-    .stat-number {
-      font-size: 32px;
-      font-weight: bold;
-      letter-spacing: -1px;
-    }
-
-    .stat-label {
-      font-size: 10px;
-      color: var(--text-muted);
+    /* 右上角 Admin 登入按鈕 */
+    .admin-btn {
+      position: absolute; top: 20px; right: 20px; z-index: 1000;
+      background: var(--panel-bg); border: 1px solid var(--border-color);
+      color: var(--glyph-white); padding: 8px 12px; font-size: 11px;
+      cursor: pointer; backdrop-filter: blur(10px); border-radius: 4px;
       letter-spacing: 1px;
     }
+    .admin-btn:hover { border-color: var(--glyph-white); }
+    .admin-btn.active { border-color: var(--glyph-red); color: var(--glyph-red); }
 
-    /* 自訂 Glyph 光斑 Marker 樣式 */
+    /* Auth Modal 彈窗 */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 2000;
+      justify-content: center; align-items: center;
+    }
+    .modal {
+      background: #0a0a0a; border: 1px solid var(--border-color);
+      padding: 30px; width: 320px; border-radius: 4px;
+    }
+    .modal h3 { font-size: 14px; margin-bottom: 20px; letter-spacing: 1px; }
+    .modal input {
+      width: 100%; background: #151515; border: 1px solid var(--border-color);
+      color: #fff; padding: 10px; margin-bottom: 15px; font-size: 12px;
+    }
+    .modal input:focus { outline: none; border-color: var(--glyph-white); }
+    .modal-actions { display: flex; justify-content: space-between; gap: 10px; }
+    .btn {
+      flex: 1; padding: 10px; background: #fff; color: #000; border: none;
+      font-weight: bold; cursor: pointer; font-size: 11px;
+    }
+    .btn-cancel { background: transparent; color: #888; border: 1px solid var(--border-color); }
+
+    /* Glyph 光斑 Marker 樣式 */
     .glyph-marker {
-      background: var(--glyph-white);
-      border-radius: 50%;
-      box-shadow: 0 0 10px var(--glyph-white), 0 0 20px var(--glyph-white), 0 0 30px var(--glyph-white);
+      background: var(--glyph-white); border-radius: 50%;
+      box-shadow: 0 0 10px var(--glyph-white), 0 0 20px var(--glyph-white);
       animation: pulse 2s infinite ease-in-out;
     }
-
     @keyframes pulse {
-      0% {
-        box-shadow: 0 0 8px var(--glyph-white), 0 0 15px var(--glyph-white);
-      }
-      50% {
-        box-shadow: 0 0 15px var(--glyph-white), 0 0 30px var(--glyph-white), 0 0 40px var(--glyph-white);
-      }
-      100% {
-        box-shadow: 0 0 8px var(--glyph-white), 0 0 15px var(--glyph-white);
-      }
+      0%, 100% { box-shadow: 0 0 8px var(--glyph-white), 0 0 15px var(--glyph-white); }
+      50% { box-shadow: 0 0 15px var(--glyph-white), 0 0 30px var(--glyph-white); }
     }
   </style>
 </head>
 <body>
 
+  <!-- Dashboard -->
   <div class="dashboard">
     <div class="brand-header">
-      <span class="brand-title">GLYPH // MAP (01)</span>
+      <span class="brand-title">GLYPH // MAP</span>
       <div class="red-dot"></div>
     </div>
-    <div class="stat-box">
-      <div class="stat-number" id="city-count">--</div>
-      <div class="stat-label">CITIES LIGHT UP</div>
+    <div class="stat-number" id="city-count">00</div>
+    <div class="stat-label">CITIES UNLOCKED</div>
+  </div>
+
+  <!-- Admin Button -->
+  <button class="admin-btn" id="admin-btn" onclick="openLoginModal()">[ LOGIN ]</button>
+
+  <!-- Login Modal -->
+  <div class="modal-overlay" id="login-modal">
+    <div class="modal">
+      <h3>ADMIN // AUTHENTICATION</h3>
+      <input type="email" id="login-email" placeholder="EMAIL">
+      <input type="password" id="login-password" placeholder="PASSWORD">
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeLoginModal()">CANCEL</button>
+        <button class="btn" onclick="handleLogin()">LOGIN</button>
+      </div>
     </div>
   </div>
 
+  <!-- Map -->
   <div id="map"></div>
 
   <script>
-    // 1. 初始化 Supabase
+    // ⚠️ 請填入你的 Supabase 專屬憑證
     const SUPABASE_URL = 'YOUR_SUPABASE_URL';
     const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    let supabase = null;
+    if (SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
 
-    // 2. 初始化 Leaflet 地圖 (極簡風格 TileLayer)
-    const map = L.map('map', {
-      zoomControl: false,
-      attributionControl: false
-    }).setView([20, 0], 2.5);
+    let currentUser = null;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-    }).addTo(map);
+    // 1. 先初始化 Leaflet 地圖（保證地圖一定能正常畫出來）
+    const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20, 0], 2.5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // 3. 從 Supabase 讀取數據並渲染 Glow Marker
-    async function fetchVisitedCities() {
-      const { data, error } = await supabase
-        .from('visited_cities')
-        .select('*')
-        .eq('is_visited', true);
+    // 2. 檢查 Supabase 登入狀態
+    async function checkAuthStatus() {
+      if (!supabase) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      updateAdminUI(session ? session.user : null);
+    }
 
+    function updateAdminUI(user) {
+      currentUser = user;
+      const btn = document.getElementById('admin-btn');
+      if (currentUser) {
+        btn.innerText = '[ ADMIN ON ]';
+        btn.classList.add('active');
+        btn.onclick = handleLogout;
+      } else {
+        btn.innerText = '[ LOGIN ]';
+        btn.classList.remove('active');
+        btn.onclick = openLoginModal;
+      }
+    }
+
+    function openLoginModal() { document.getElementById('login-modal').style.display = 'flex'; }
+    function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
+
+    async function handleLogin() {
+      if (!supabase) return alert('請先喺 index.html 填入 Supabase URL 同 Key！');
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        console.error('Error fetching data:', error);
+        alert('LOGIN FAILED: ' + error.message);
+      } else {
+        updateAdminUI(data.user);
+        closeLoginModal();
+        alert('WELCOME BACK, ADMIN.');
+      }
+    }
+
+    async function handleLogout() {
+      if (confirm('LOGOUT ADMIN?')) {
+        await supabase.auth.signOut();
+        updateAdminUI(null);
+      }
+    }
+
+    // 3. 抓取地圖點位
+    async function fetchVisitedCities() {
+      if (!supabase) return;
+      const { data, error } = await supabase.from('visited_cities').select('*');
+      if (error) return console.error(error);
+
+      document.getElementById('city-count').innerText = data.length.toString().padStart(2, '0');
+      data.forEach(city => addGlyphMarker(city.lat, city.lng, city.city_name, city.country));
+    }
+
+    function addGlyphMarker(lat, lng, cityName, country) {
+      const glyphIcon = L.divIcon({ className: 'glyph-marker', iconSize: [10, 10], iconAnchor: [5, 5] });
+      const marker = L.marker([lat, lng], { icon: glyphIcon }).addTo(map);
+      marker.bindPopup(`
+        <div style="background:#000; color:#fff; padding:6px; font-family:'Space Mono'; font-size:11px; border:1px solid #333;">
+          > ${(cityName || '').toUpperCase()}, ${(country || '').toUpperCase()}
+        </div>
+      `);
+    }
+
+    // 4. 點擊地圖新增城市（登入後生效）
+    map.on('click', async function(e) {
+      if (!currentUser) {
+        alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號，才可以點擊新增城市！');
         return;
       }
 
-      document.getElementById('city-count').innerText = data.length.toString().padStart(2, '0');
+      const { lat, lng } = e.latlng;
+      const cityName = prompt(`[ADMIN] ADD NEW CITY AT (${lat.toFixed(2)}, ${lng.toFixed(2)}):`);
+      if (!cityName) return;
 
-      data.forEach(city => {
-        // 創建 Glyph 發光圖標
-        const glyphIcon = L.divIcon({
-          className: 'glyph-marker',
-          iconSize: [10, 10],
-          iconAnchor: [5, 5]
-        });
+      const country = prompt(`[ADMIN] COUNTRY NAME:`) || '';
 
-        const marker = L.marker([city.lat, city.lng], { icon: glyphIcon }).addTo(map);
-        
-        // Popup 樣式
-        marker.bindPopup(`
-          <div style="background:#000; color:#fff; padding:5px; font-family:'Space Mono'; font-size:12px;">
-            > ${city.city_name.toUpperCase()}, ${city.country.toUpperCase()}
-          </div>
-        `, { className: 'custom-popup' });
-      });
-    }
+      if (supabase) {
+        const { error } = await supabase.from('visited_cities').insert([
+          {
+            city_code: cityName.substring(0,3).toUpperCase() + Math.floor(Math.random() * 100),
+            city_name: cityName,
+            country: country,
+            lat: lat,
+            lng: lng,
+            is_visited: true
+          }
+        ]);
 
+        if (error) {
+          alert('INSERT ERROR: ' + error.message);
+          return;
+        }
+      }
+
+      addGlyphMarker(lat, lng, cityName, country);
+      const countElem = document.getElementById('city-count');
+      countElem.innerText = (parseInt(countElem.innerText) + 1).toString().padStart(2, '0');
+    });
+
+    checkAuthStatus();
     fetchVisitedCities();
   </script>
 </body>
