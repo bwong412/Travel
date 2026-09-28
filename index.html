@@ -24,7 +24,7 @@
       --text-muted: #888888;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Mono', monospace; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Mono', monospace, -apple-system, "PingFang HK", "Microsoft JhengHei"; }
     html, body { width: 100%; height: 100%; background-color: var(--bg-color); color: var(--glyph-white); overflow: hidden; touch-action: none; }
 
     #world-canvas {
@@ -33,7 +33,7 @@
     }
     #world-canvas:active { cursor: grabbing; }
 
-    /* Hover 2秒跳出的國家 Tooltip 懸浮框 */
+    /* Hover 2秒跳出的國家 Tooltip 懸浮框 (中英雙語) */
     .country-tooltip {
       position: absolute;
       display: none;
@@ -51,6 +51,7 @@
       backdrop-filter: blur(8px);
       transform: translate(15px, 15px);
       transition: opacity 0.2s ease;
+      white-space: nowrap;
     }
 
     /* Top Navigation Bar */
@@ -384,9 +385,18 @@
     let visitedCities = [];
     let currentFilter = 'ALL';
 
-    /* 全球國家高畫質地標壁紙庫（已補齊 CANADA 加拿大班夫雪山湖泊） */
+    /* 全球國家中文翻譯字典 */
+    const COUNTRY_CN_NAME = {
+      'JAPAN': '日本', 'CHINA': '中國', 'TAIWAN': '台灣', 'HONG KONG': '香港', 'MACAU': '澳門',
+      'SOUTH KOREA': '韓國', 'KOREA': '韓國', 'THAILAND': '泰國', 'VIETNAM': '越南', 'MALAYSIA': '馬來西亞',
+      'SINGAPORE': '新加坡', 'USA': '美國', 'UNITED STATES': '美國', 'CANADA': '加拿大', 'UNITED KINGDOM': '英國',
+      'UK': '英國', 'FRANCE': '法國', 'GERMANY': '德國', 'ITALY': '義大利', 'SWITZERLAND': '瑞士',
+      'NORWAY': '挪威', 'ICELAND': '冰島', 'FINLAND': '芬蘭', 'NETHERLANDS': '荷蘭', 'AUSTRALIA': '澳洲',
+      'NEW ZEALAND': '紐西蘭', 'FIJI': '斐濟', 'MALDIVES': '馬爾地夫', '梵蒂岡': '梵蒂岡', 'VATICAN CITY': '梵蒂岡'
+    };
+
     const STATIC_LANDMARKS = {
-      'CANADA': 'https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=800&auto=format&fit=crop', // 加拿大班夫國家公園 / Peyto Lake
+      'CANADA': 'https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=800&auto=format&fit=crop',
       'USA': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
       'UNITED STATES': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
       'FIJI': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&auto=format&fit=crop',
@@ -412,7 +422,6 @@
       'NEW ZEALAND': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&auto=format&fit=crop'
     };
 
-    /* 補齊 CANADA 加拿大國旗代碼 ca */
     const COUNTRY_FLAG_CODES = {
       'CANADA': 'ca', 'JAPAN': 'jp', 'NEW ZEALAND': 'nz', 'CHINA': 'cn', 'USA': 'us', 'UNITED STATES': 'us',
       'UNITED KINGDOM': 'gb', 'UK': 'gb', 'FRANCE': 'fr', 'GERMANY': 'de', 'ITALY': 'it',
@@ -562,10 +571,13 @@
           tooltipEl.style.display = 'none';
 
           if (hoveredCountryFeature) {
-            const countryName = (hoveredCountryFeature.properties.name || '').toUpperCase();
+            const countryNameEN = (hoveredCountryFeature.properties.name || '').toUpperCase();
+            const countryNameCN = COUNTRY_CN_NAME[countryNameEN] || '';
             
+            // 2 秒後顯示中英雙語懸浮框
             hoverTimer = setTimeout(() => {
-              tooltipEl.innerText = `> ${countryName}`;
+              const displayName = countryNameCN ? `> ${countryNameEN} / ${countryNameCN}` : `> ${countryNameEN}`;
+              tooltipEl.innerText = displayName;
               tooltipEl.style.left = `${e.clientX}px`;
               tooltipEl.style.top = `${e.clientY}px`;
               tooltipEl.style.display = 'block';
