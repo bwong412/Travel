@@ -69,7 +69,7 @@
     .admin-btn:hover { border-color: var(--glyph-white); background: #1f1f1f; }
     .admin-btn.active { border-color: var(--glyph-red); color: var(--glyph-red); }
 
-    /* Nothing Style Custom Dark Modals */
+    /* Dark Modals */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 2000;
@@ -99,7 +99,6 @@
       padding: 8px 0; border-bottom: 1px solid #222; font-size: 11px;
     }
     .city-actions span { cursor: pointer; margin-left: 10px; color: var(--glyph-red); }
-    .city-actions span.edit { color: #888; }
     .city-actions span:hover { text-decoration: underline; }
   </style>
 </head>
@@ -145,12 +144,12 @@
     </div>
   </div>
 
-  <!-- Custom Dark Modal for Adding City (取代白底 Prompt) -->
+  <!-- Add City Modal (可手動輸入 Coordinates) -->
   <div class="modal-overlay" id="add-city-modal">
     <div class="modal">
       <h3>ADD NEW UNLOCKED CITY</h3>
-      <label>COORDINATES</label>
-      <input type="text" id="add-coords" readonly style="color: #666; background: #111;">
+      <label>COORDINATES (LAT, LNG)</label>
+      <input type="text" id="add-coords" placeholder="e.g. 35.67, 139.65">
       
       <label>CITY NAME</label>
       <input type="text" id="add-city-name" placeholder="e.g. TOKYO">
@@ -160,11 +159,11 @@
       
       <label>REGION / CONTINENT</label>
       <select id="add-region">
-        <option value="ASIA">ASIA (亞洲)</option>
-        <option value="EUROPE">EUROPE (歐洲)</option>
-        <option value="AMERICAS">AMERICAS (美洲)</option>
-        <option value="AFRICA">AFRICA (非洲)</option>
-        <option value="OCEANIA">OCEANIA (大洋洲)</option>
+        <option value="ASIA">ASIA (赤紅光)</option>
+        <option value="EUROPE">EUROPE (冰藍光)</option>
+        <option value="AMERICAS">AMERICAS (純白光)</option>
+        <option value="AFRICA">AFRICA (琥珀黃)</option>
+        <option value="OCEANIA">OCEANIA (翡翠綠)</option>
       </select>
 
       <div class="modal-actions">
@@ -202,7 +201,15 @@
     let currentUser = null;
     let visitedCities = [];
     let currentFilter = 'ALL';
-    let pendingCoords = null;
+
+    // 大洲專屬發光色值表
+    const REGION_COLORS = {
+      'ASIA': { core: '#FF5252', glow: 'rgba(215, 25, 33, ' },      // 赤紅
+      'EUROPE': { core: '#80D8FF', glow: 'rgba(0, 229, 255, ' },    // 冰藍
+      'AMERICAS': { core: '#FFFFFF', glow: 'rgba(255, 255, 255, ' }, // 純白
+      'AFRICA': { core: '#FFD740', glow: 'rgba(255, 179, 0, ' },     // 琥珀黃
+      'OCEANIA': { core: '#69F0AE', glow: 'rgba(0, 230, 118, ' }     // 翡翠綠
+    };
 
     function openLoginModal() { document.getElementById('login-modal').style.display = 'flex'; }
     function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
@@ -210,24 +217,25 @@
     function closeManageModal() { document.getElementById('manage-modal').style.display = 'none'; }
 
     function openAddCityModal(lat, lng) {
-      pendingCoords = { lat, lng };
-      document.getElementById('add-coords').value = `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+      if (lat !== undefined && lng !== undefined) {
+        document.getElementById('add-coords').value = `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+        
+        if (lng > 60 && lng < 150 && lat > 0) document.getElementById('add-region').value = 'ASIA';
+        else if (lng > -15 && lng < 50 && lat > 35) document.getElementById('add-region').value = 'EUROPE';
+        else if (lng < -30) document.getElementById('add-region').value = 'AMERICAS';
+        else if (lng > -20 && lng < 55 && lat <= 35 && lat > -35) document.getElementById('add-region').value = 'AFRICA';
+        else if (lng >= 110 && lat < 0) document.getElementById('add-region').value = 'OCEANIA';
+      } else {
+        document.getElementById('add-coords').value = '';
+      }
+
       document.getElementById('add-city-name').value = '';
       document.getElementById('add-country-name').value = '';
-      
-      // 根據點擊經緯度自動預判大洲，免去手選麻煩
-      if (lng > 60 && lng < 150 && lat > 0) document.getElementById('add-region').value = 'ASIA';
-      else if (lng > -15 && lng < 50 && lat > 35) document.getElementById('add-region').value = 'EUROPE';
-      else if (lng < -30) document.getElementById('add-region').value = 'AMERICAS';
-      else if (lng > -20 && lng < 55 && lat <= 35 && lat > -35) document.getElementById('add-region').value = 'AFRICA';
-      else if (lng >= 110 && lat < 0) document.getElementById('add-region').value = 'OCEANIA';
-
       document.getElementById('add-city-modal').style.display = 'flex';
     }
 
     function closeAddCityModal() {
       document.getElementById('add-city-modal').style.display = 'none';
-      pendingCoords = null;
     }
 
     async function handleLogin() {
@@ -248,7 +256,7 @@
       }
     }
 
-    // Canvas Engine
+    // Canvas Renderer
     const canvas = document.getElementById('world-canvas');
     const ctx = canvas.getContext('2d');
 
@@ -317,7 +325,7 @@
         }
       }
 
-      // Render World Map Boundaries
+      // World Map Vector Boundaries
       if (window.topojson && worldGeoData) {
         const countries = topojson.feature(worldGeoData, worldGeoData.objects.countries);
         ctx.beginPath();
@@ -329,29 +337,34 @@
         ctx.stroke();
       }
 
-      // Render Filtered Glow Cities
+      // Render Region-Colored Glow Points
       visitedCities.forEach(city => {
         if (currentFilter !== 'ALL' && city.region && city.region !== currentFilter) return;
 
         const pt = projection([city.lng, city.lat]);
         if (!pt) return;
 
+        const regionTheme = REGION_COLORS[city.region || 'ASIA'] || REGION_COLORS['ASIA'];
+
+        // Glow Layer
         const glowRadius = 10 + Math.sin(pulseTime) * 4;
         const gradient = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], glowRadius);
-        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-        gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.6)');
-        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        gradient.addColorStop(0, regionTheme.glow + '1)');
+        gradient.addColorStop(0.4, regionTheme.glow + '0.5)');
+        gradient.addColorStop(1, regionTheme.glow + '0)');
 
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(pt[0], pt[1], glowRadius, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = '#ffffff';
+        // Core Point
+        ctx.fillStyle = regionTheme.core;
         ctx.beginPath();
         ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2);
         ctx.fill();
 
+        // Label
         ctx.fillStyle = '#a0a0a0';
         ctx.font = '10px Space Mono';
         ctx.fillText(`> ${city.city_name.toUpperCase()}`, pt[0] + 10, pt[1] + 4);
@@ -362,7 +375,6 @@
 
     renderCanvas();
 
-    // Click Canvas to Trigger Custom Dark Modal
     canvas.addEventListener('click', (e) => {
       if (!currentUser) {
         alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號！');
@@ -380,15 +392,21 @@
     });
 
     async function confirmAddCity() {
-      if (!pendingCoords) return;
-
+      const coordsInput = document.getElementById('add-coords').value.trim();
       const cityName = document.getElementById('add-city-name').value.trim();
       const country = document.getElementById('add-country-name').value.trim();
       const region = document.getElementById('add-region').value;
 
+      if (!coordsInput) return alert('請輸入 Coordinates 經緯度！');
       if (!cityName) return alert('請輸入城市名稱！');
 
-      const { lat, lng } = pendingCoords;
+      const parts = coordsInput.split(',');
+      if (parts.length !== 2) return alert('Coordinates 格式不正確！請填寫如: 35.67, 139.65');
+
+      const lat = parseFloat(parts[0].trim());
+      const lng = parseFloat(parts[1].trim());
+
+      if (isNaN(lat) || isNaN(lng)) return alert('經緯度必須為數字！');
 
       if (supabaseClient) {
         const { data, error } = await supabaseClient.from('visited_cities').insert([
