@@ -12,7 +12,7 @@
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- NDOT / Monospace Style Font -->
+  <!-- NDOT / Monospace Font -->
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
   <style>
@@ -25,41 +25,54 @@
       --text-muted: #888888;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Mono', monospace; }
-    body { background-color: var(--bg-color); color: var(--glyph-white); height: 100vh; overflow: hidden; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: var(--glyph-white);
+      font-family: 'Space Mono', monospace;
+      overflow: hidden;
+    }
 
-    #map { height: 100vh; width: 100vw; background: #000; }
-    
-    /* 地圖暗黑瓦片濾鏡 */
-    .leaflet-tile-container img { 
-      filter: brightness(0.4) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3); 
+    #map {
+      width: 100vw;
+      height: 100vh;
+      background: #090909;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
     }
 
     /* Dashboard UI */
     .dashboard {
       position: absolute; top: 20px; left: 20px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
-      backdrop-filter: blur(10px); padding: 20px; border-radius: 4px; width: 280px;
+      backdrop-filter: blur(10px); padding: 20px; border-radius: 4px; width: 260px;
       box-shadow: 0 0 20px rgba(0,0,0,0.8);
+      pointer-events: auto;
     }
     .brand-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px; margin-bottom: 15px; }
-    .brand-title { font-size: 13px; letter-spacing: 2px; }
+    .brand-title { font-size: 12px; letter-spacing: 2px; }
     .red-dot { width: 8px; height: 8px; background-color: var(--glyph-red); border-radius: 50%; box-shadow: 0 0 8px var(--glyph-red); }
     .stat-number { font-size: 32px; font-weight: bold; }
     .stat-label { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
 
-    /* 右上角 Admin 登入按鈕 */
+    /* Right Admin Button */
     .admin-btn {
       position: absolute; top: 20px; right: 20px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
       color: var(--glyph-white); padding: 8px 12px; font-size: 11px;
       cursor: pointer; backdrop-filter: blur(10px); border-radius: 4px;
       letter-spacing: 1px;
+      font-family: 'Space Mono', monospace;
     }
     .admin-btn:hover { border-color: var(--glyph-white); }
     .admin-btn.active { border-color: var(--glyph-red); color: var(--glyph-red); }
 
-    /* Auth Modal 彈窗 */
+    /* Auth Modal */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 2000;
@@ -69,28 +82,31 @@
       background: #0a0a0a; border: 1px solid var(--border-color);
       padding: 30px; width: 320px; border-radius: 4px;
     }
-    .modal h3 { font-size: 14px; margin-bottom: 20px; letter-spacing: 1px; }
+    .modal h3 { font-size: 13px; margin-bottom: 20px; letter-spacing: 1px; }
     .modal input {
       width: 100%; background: #151515; border: 1px solid var(--border-color);
       color: #fff; padding: 10px; margin-bottom: 15px; font-size: 12px;
+      font-family: 'Space Mono', monospace;
     }
     .modal input:focus { outline: none; border-color: var(--glyph-white); }
     .modal-actions { display: flex; justify-content: space-between; gap: 10px; }
     .btn {
       flex: 1; padding: 10px; background: #fff; color: #000; border: none;
       font-weight: bold; cursor: pointer; font-size: 11px;
+      font-family: 'Space Mono', monospace;
     }
     .btn-cancel { background: transparent; color: #888; border: 1px solid var(--border-color); }
 
-    /* Glyph 光斑 Marker 樣式 */
+    /* Glyph Marker Neon Glow */
     .glyph-marker {
-      background: var(--glyph-white); border-radius: 50%;
-      box-shadow: 0 0 10px var(--glyph-white), 0 0 20px var(--glyph-white);
-      animation: pulse 2s infinite ease-in-out;
+      background: #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #ffffff, 0 0 15px #ffffff, 0 0 25px rgba(255,255,255,0.8);
+      animation: pulse 2.5s infinite ease-in-out;
     }
     @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 8px var(--glyph-white), 0 0 15px var(--glyph-white); }
-      50% { box-shadow: 0 0 15px var(--glyph-white), 0 0 30px var(--glyph-white); }
+      0%, 100% { box-shadow: 0 0 8px #ffffff, 0 0 15px #ffffff; transform: scale(1); }
+      50% { box-shadow: 0 0 15px #ffffff, 0 0 30px #ffffff, 0 0 40px #ffffff; transform: scale(1.2); }
     }
   </style>
 </head>
@@ -126,22 +142,32 @@
   <div id="map"></div>
 
   <script>
-    // ⚠️ 請填入你的 Supabase 專屬憑證
+    // ⚠️ 記得將這兩行替換為你的 Supabase Project Credentials
     const SUPABASE_URL = 'YOUR_SUPABASE_URL';
     const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
     
     let supabase = null;
-    if (SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
+    if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_URL !== '') {
       supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
 
     let currentUser = null;
 
-    // 1. 先初始化 Leaflet 地圖（保證地圖一定能正常畫出來）
-    const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20, 0], 2.5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    // 1. 初始化暗黑風格 Leaflet 地圖 (CartoDB Dark Matter)
+    const map = L.map('map', { 
+      zoomControl: false, 
+      attributionControl: false 
+    }).setView([20, 0], 2.5);
 
-    // 2. 檢查 Supabase 登入狀態
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      subdomains: 'abcd'
+    }).addTo(map);
+
+    // 強制刷新地圖尺寸
+    setTimeout(() => { map.invalidateSize(); }, 300);
+
+    // 2. 檢查 Auth 狀態
     async function checkAuthStatus() {
       if (!supabase) return;
       const { data: { session } } = await supabase.auth.getSession();
@@ -187,7 +213,7 @@
       }
     }
 
-    // 3. 抓取地圖點位
+    // 3. 獲取已去的城市
     async function fetchVisitedCities() {
       if (!supabase) return;
       const { data, error } = await supabase.from('visited_cities').select('*');
@@ -207,10 +233,10 @@
       `);
     }
 
-    // 4. 點擊地圖新增城市（登入後生效）
+    // 4. 點擊地圖新增城市（管理員登入後）
     map.on('click', async function(e) {
       if (!currentUser) {
-        alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號，才可以點擊新增城市！');
+        alert('請先點擊右上角 [ LOGIN ] 登入，才可以點擊新增去過的城市！');
         return;
       }
 
