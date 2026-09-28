@@ -12,7 +12,7 @@
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- NDOT / Monospace Font -->
+  <!-- Space Mono / NDOT Monospace Font -->
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
   <style>
@@ -46,7 +46,7 @@
       z-index: 1;
     }
 
-    /* Dashboard UI */
+    /* Nothing Style Dashboard UI */
     .dashboard {
       position: absolute; top: 20px; left: 20px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
@@ -97,7 +97,7 @@
     }
     .btn-cancel { background: transparent; color: #888; border: 1px solid var(--border-color); }
 
-    /* Glyph Marker Neon Glow */
+    /* Glyph Marker Neon Glow Animation */
     .glyph-marker {
       background: #ffffff;
       border-radius: 50%;
@@ -138,22 +138,22 @@
     </div>
   </div>
 
-  <!-- Map -->
+  <!-- Map Container -->
   <div id="map"></div>
 
   <script>
-    // ⚠️ 記得將這兩行替換為你的 Supabase Project Credentials
-    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    // 1. Supabase Credentials
+    const SUPABASE_URL = 'https://pmrhldqgabasvohsupbn.supabase.co';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // 👈 貼上你從 Supabase API Keys 複製到的 Key
     
     let supabase = null;
-    if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_URL !== '') {
+    if (SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY' && SUPABASE_ANON_KEY !== '') {
       supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
 
     let currentUser = null;
 
-    // 1. 初始化暗黑風格 Leaflet 地圖 (CartoDB Dark Matter)
+    // 2. 初始化 CartoDB Dark Matter 地圖
     const map = L.map('map', { 
       zoomControl: false, 
       attributionControl: false 
@@ -164,10 +164,9 @@
       subdomains: 'abcd'
     }).addTo(map);
 
-    // 強制刷新地圖尺寸
     setTimeout(() => { map.invalidateSize(); }, 300);
 
-    // 2. 檢查 Auth 狀態
+    // 3. Auth Management
     async function checkAuthStatus() {
       if (!supabase) return;
       const { data: { session } } = await supabase.auth.getSession();
@@ -192,7 +191,7 @@
     function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
 
     async function handleLogin() {
-      if (!supabase) return alert('請先喺 index.html 填入 Supabase URL 同 Key！');
+      if (!supabase) return alert('請先喺 index.html 填入 Supabase ANON Key！');
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
 
@@ -213,7 +212,7 @@
       }
     }
 
-    // 3. 獲取已去的城市
+    // 4. Fetch & Render Cities
     async function fetchVisitedCities() {
       if (!supabase) return;
       const { data, error } = await supabase.from('visited_cities').select('*');
@@ -233,7 +232,7 @@
       `);
     }
 
-    // 4. 點擊地圖新增城市（管理員登入後）
+    // 5. Admin Map Click to Insert
     map.on('click', async function(e) {
       if (!currentUser) {
         alert('請先點擊右上角 [ LOGIN ] 登入，才可以點擊新增去過的城市！');
