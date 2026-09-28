@@ -144,14 +144,48 @@
       max-width: 1100px; margin: 0 auto;
     }
 
-    .deep-card {
-      position: relative; height: 380px; border-radius: 24px; overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.12); background-size: cover; background-position: center;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.8); transition: transform 0.3s, border-color 0.3s;
-      display: flex; flex-direction: column; justify-content: flex-end; padding: 20px;
-      background-color: #1a1a1a;
+    /* 3D Flip Card Container */
+    .flip-card-container {
+      perspective: 1000px;
+      height: 380px;
+      cursor: pointer;
     }
-    .deep-card:hover { transform: translateY(-6px); border-color: rgba(255,255,255,0.4); }
+
+    .flip-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+      transform-style: preserve-3d;
+    }
+
+    .flip-card-container.flipped .flip-card-inner {
+      transform: rotateY(180deg);
+    }
+
+    /* Card Front & Back Common Styles */
+    .deep-card-front, .deep-card-back {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.8);
+    }
+
+    /* Front Design */
+    .deep-card-front {
+      background-size: cover;
+      background-position: center;
+      background-color: #1a1a1a;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 20px;
+    }
 
     .deep-card-overlay {
       position: absolute; inset: 0;
@@ -163,7 +197,6 @@
     .deep-card-title { font-size: 22px; font-weight: 700; letter-spacing: 1px; color: #ffffff; margin-bottom: 6px; }
     .deep-card-cities { font-size: 11px; color: #b0b0b0; line-height: 1.5; margin-bottom: 14px; min-height: 33px; }
     
-    /* 4. 進度條區塊 UI (Progress Bar System) */
     .progress-info-row { display: flex; justify-content: space-between; font-size: 9px; color: #aaa; margin-bottom: 6px; font-weight: bold; letter-spacing: 0.5px; }
     .progress-bar-bg {
       width: 100%; height: 6px; background: rgba(255, 255, 255, 0.15); border-radius: 4px; overflow: hidden;
@@ -174,6 +207,42 @@
     }
     .progress-bar-fill.full {
       background: var(--glyph-cyan); box-shadow: 0 0 10px var(--glyph-cyan);
+    }
+
+    /* Back Design (National Flag View) */
+    .deep-card-back {
+      transform: rotateY(180deg);
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .flag-large-img {
+      width: 140px;
+      height: 95px;
+      object-fit: cover;
+      border-radius: 8px;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      margin-bottom: 20px;
+    }
+
+    .flag-country-name {
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+
+    .flag-hint {
+      font-size: 9px;
+      color: #666;
+      letter-spacing: 1px;
     }
 
     @media (max-width: 600px) {
@@ -300,7 +369,7 @@
     let visitedCities = [];
     let currentFilter = 'ALL';
 
-    // 1. 各國家高畫質靜態壁紙 (備用)
+    // 修正: 梵蒂岡 (VATICAN CITY) 採用準確的聖伯多祿大殿 (St. Peter's Basilica) 高清壁紙
     const STATIC_LANDMARKS = {
       'USA': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
       'UNITED STATES': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
@@ -314,8 +383,8 @@
       'GERMANY': 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800&auto=format&fit=crop',
       'ITALY': 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=800&auto=format&fit=crop',
       'SWITZERLAND': 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=800&auto=format&fit=crop',
-      '梵蒂岡': 'https://images.unsplash.com/photo-1548625149-fc4a29cf7092?w=800&auto=format&fit=crop',
-      'VATICAN CITY': 'https://images.unsplash.com/photo-1548625149-fc4a29cf7092?w=800&auto=format&fit=crop',
+      '梵蒂岡': 'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=800&auto=format&fit=crop', // 正確聖伯多祿大殿
+      'VATICAN CITY': 'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=800&auto=format&fit=crop',
       'NETHERLANDS': 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=800&auto=format&fit=crop',
       'ICELAND': 'https://images.unsplash.com/photo-1504893524553-b855bce32c67?w=800&auto=format&fit=crop',
       'FINLAND': 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&auto=format&fit=crop',
@@ -327,7 +396,16 @@
       'NEW ZEALAND': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&auto=format&fit=crop'
     };
 
-    // 4. 全球主要國家標準目標解鎖城市總數 (Target Cities for Progress Calculation)
+    // 國家 ISO 碼表（用於加載背面高清大國旗）
+    const COUNTRY_FLAG_CODES = {
+      'JAPAN': 'jp', 'NEW ZEALAND': 'nz', 'CHINA': 'cn', 'USA': 'us', 'UNITED STATES': 'us',
+      'UNITED KINGDOM': 'gb', 'UK': 'gb', 'FRANCE': 'fr', 'GERMANY': 'de', 'ITALY': 'it',
+      'AUSTRALIA': 'au', 'MACAU': 'mo', 'HONG KONG': 'hk', 'TAIWAN': 'tw', 'SINGAPORE': 'sg',
+      'SOUTH KOREA': 'kr', 'KOREA': 'kr', 'THAILAND': 'th', 'VIETNAM': 'vn', 'MALAYSIA': 'my',
+      'NORWAY': 'no', 'MALDIVES': 'mv', 'SWITZERLAND': 'ch', 'ICELAND': 'is', 'FINLAND': 'fi',
+      'NETHERLANDS': 'nl', 'FIJI': 'fj', '梵蒂岡': 'va', 'VATICAN CITY': 'va'
+    };
+
     const COUNTRY_TARGET_CITIES = {
       'JAPAN': 20, 'CHINA': 20, 'USA': 20, 'UNITED STATES': 20, 'AUSTRALIA': 10,
       'NEW ZEALAND': 10, 'TAIWAN': 10, 'UNITED KINGDOM': 10, 'GERMANY': 10,
@@ -350,11 +428,9 @@
       return str.toString().toUpperCase().replace(/\s+/g, ' ').trim();
     }
 
-    // 1. 動態 Unsplash 風景匹配 API (無縫自動抓取任何國家的壁紙)
     function getCountryImageUrl(countryName) {
       const cleaned = cleanCountryName(countryName);
       if (STATIC_LANDMARKS[cleaned]) return STATIC_LANDMARKS[cleaned];
-      // 找不到備用靜態圖時，透過動態關鍵字調用 Unsplash 高清圖庫
       return `https://source.unsplash.com/800x600/?${encodeURIComponent(cleaned)},landmark,scenery`;
     }
 
@@ -455,7 +531,6 @@
       height = canvas.height = window.innerHeight;
     });
 
-    // 2. 當點擊 "ALL" 時平滑重置全圖視角 (Zoom back to whole map)
     function setFilter(region, element) {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
@@ -515,7 +590,6 @@
     function renderCanvas() {
       pulseTime += 0.03;
 
-      // 平滑內插移動與縮放
       zoomLevel += (targetZoom - zoomLevel) * 0.1;
       panOffset.x += (targetPan.x - panOffset.x) * 0.1;
       panOffset.y += (targetPan.y - panOffset.y) * 0.1;
@@ -614,7 +688,6 @@
 
     renderCanvas();
 
-    // 3. 改為「雙擊地圖 (Double Click)」才觸發新增，徹底避免滑動拖拉誤觸！
     canvas.addEventListener('dblclick', (e) => {
       if (!currentUser) {
         alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號！');
@@ -704,7 +777,7 @@
       renderCityManageList();
     }
 
-    // 4. 卡片進度條與幾多% (Target Cities Exploration Progress System)
+    // 渲染卡片 + 點擊翻牌展示國旗 (3D Flip Card Effect)
     function renderCountryCards() {
       const container = document.getElementById('cards-container');
       container.innerHTML = '';
@@ -727,30 +800,44 @@
         const citiesList = grouped[country].join(', ');
         const visitedCount = grouped[country].length;
         
-        // 取得該國目標城市數 (預設 10 個城市)
         const targetCount = COUNTRY_TARGET_CITIES[country] || 10;
         const progressPercent = Math.min(100, Math.round((visitedCount / targetCount) * 100));
         const isFull = progressPercent >= 100;
 
         const bgImg = getCountryImageUrl(country);
+        const flagCode = COUNTRY_FLAG_CODES[country] || 'un';
+        const flagUrl = `https://flagcdn.com/w160/${flagCode}.png`;
 
         const card = document.createElement('div');
-        card.className = 'deep-card';
-        card.style.backgroundImage = `url('${bgImg}')`;
+        card.className = 'flip-card-container';
+        card.onclick = function() {
+          this.classList.toggle('flipped');
+        };
 
         card.innerHTML = `
-          <div class="deep-card-overlay"></div>
-          <div class="deep-card-content">
-            <div class="deep-card-title">#${country}</div>
-            <div class="deep-card-cities">the cities has been to: ${citiesList}</div>
-            
-            <!-- 探索進度條與數據 -->
-            <div class="progress-info-row">
-              <span>EXPLORED ${visitedCount}/${targetCount} CITIES</span>
-              <span>${progressPercent}%</span>
+          <div class="flip-card-inner">
+            <!-- 正面: 高級沉浸式風光與進度 -->
+            <div class="deep-card-front" style="background-image: url('${bgImg}');">
+              <div class="deep-card-overlay"></div>
+              <div class="deep-card-content">
+                <div class="deep-card-title">#${country}</div>
+                <div class="deep-card-cities">the cities has been to: ${citiesList}</div>
+                
+                <div class="progress-info-row">
+                  <span>EXPLORED ${visitedCount}/${targetCount} CITIES</span>
+                  <span>${progressPercent}%</span>
+                </div>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill ${isFull ? 'full' : ''}" style="width: ${progressPercent}%;"></div>
+                </div>
+              </div>
             </div>
-            <div class="progress-bar-bg">
-              <div class="progress-bar-fill ${isFull ? 'full' : ''}" style="width: ${progressPercent}%;"></div>
+
+            <!-- 背面: 翻牌展示國家國旗 (National Flag Back) -->
+            <div class="deep-card-back">
+              <img class="flag-large-img" src="${flagUrl}" alt="${country} flag">
+              <div class="flag-country-name">${country}</div>
+              <div class="flag-hint">[ CLICK TO FLIP BACK ]</div>
             </div>
           </div>
         `;
