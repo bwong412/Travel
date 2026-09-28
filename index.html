@@ -385,14 +385,19 @@
     let visitedCities = [];
     let currentFilter = 'ALL';
 
-    /* 全球國家中文翻譯字典 */
+    /* 擴充版全球國家中文對照字典 */
     const COUNTRY_CN_NAME = {
       'JAPAN': '日本', 'CHINA': '中國', 'TAIWAN': '台灣', 'HONG KONG': '香港', 'MACAU': '澳門',
       'SOUTH KOREA': '韓國', 'KOREA': '韓國', 'THAILAND': '泰國', 'VIETNAM': '越南', 'MALAYSIA': '馬來西亞',
-      'SINGAPORE': '新加坡', 'USA': '美國', 'UNITED STATES': '美國', 'CANADA': '加拿大', 'UNITED KINGDOM': '英國',
-      'UK': '英國', 'FRANCE': '法國', 'GERMANY': '德國', 'ITALY': '義大利', 'SWITZERLAND': '瑞士',
-      'NORWAY': '挪威', 'ICELAND': '冰島', 'FINLAND': '芬蘭', 'NETHERLANDS': '荷蘭', 'AUSTRALIA': '澳洲',
-      'NEW ZEALAND': '紐西蘭', 'FIJI': '斐濟', 'MALDIVES': '馬爾地夫', '梵蒂岡': '梵蒂岡', 'VATICAN CITY': '梵蒂岡'
+      'SINGAPORE': '新加坡', 'USA': '美國', 'UNITED STATES': '美國', 'UNITED STATES OF AMERICA': '美國',
+      'CANADA': '加拿大', 'UNITED KINGDOM': '英國', 'UK': '英國', 'GREAT BRITAIN': '英國',
+      'FRANCE': '法國', 'GERMANY': '德國', 'ITALY': '義大利', 'SWITZERLAND': '瑞士', 'NORWAY': '挪威',
+      'ICELAND': '冰島', 'FINLAND': '芬蘭', 'NETHERLANDS': '荷蘭', 'AUSTRALIA': '澳洲', 'NEW ZEALAND': '紐西蘭',
+      'FIJI': '斐濟', 'MALDIVES': '馬爾地夫', '梵蒂岡': '梵蒂岡', 'VATICAN CITY': '梵蒂岡', 'SPAIN': '西班牙',
+      'PORTUGAL': '葡萄牙', 'GREECE': '希臘', 'EGYPT': '埃及', 'TURKEY': '土耳其', 'BRAZIL': '巴西',
+      'ARGENTINA': '阿根廷', 'MEXICO': '墨西哥', 'RUSSIA': '俄羅斯', 'INDIA': '印度', 'INDONESIA': '印尼',
+      'PHILIPPINES': '菲律賓', 'SOUTH AFRICA': '南非', 'SWEDEN': '瑞典', 'DENMARK': '丹麥', 'AUSTRIA': '奧地利',
+      'BELGIUM': '比利時', 'POLAND': '波蘭', 'CZECH REPUBLIC': '捷克', 'CZECHIA': '捷克', 'HUNGARY': '匈牙利'
     };
 
     const STATIC_LANDMARKS = {
@@ -571,12 +576,12 @@
           tooltipEl.style.display = 'none';
 
           if (hoveredCountryFeature) {
-            const countryNameEN = (hoveredCountryFeature.properties.name || '').toUpperCase();
-            const countryNameCN = COUNTRY_CN_NAME[countryNameEN] || '';
+            const rawName = (hoveredCountryFeature.properties.name || '').toUpperCase().trim();
+            const countryNameCN = COUNTRY_CN_NAME[rawName] || null;
             
             // 2 秒後顯示中英雙語懸浮框
             hoverTimer = setTimeout(() => {
-              const displayName = countryNameCN ? `> ${countryNameEN} / ${countryNameCN}` : `> ${countryNameEN}`;
+              const displayName = countryNameCN ? `> ${rawName} / ${countryNameCN}` : `> ${rawName}`;
               tooltipEl.innerText = displayName;
               tooltipEl.style.left = `${e.clientX}px`;
               tooltipEl.style.top = `${e.clientY}px`;
