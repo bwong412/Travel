@@ -17,7 +17,7 @@
   <style>
     :root {
       --bg-color: #000000;
-      --panel-bg: rgba(15, 15, 15, 0.9);
+      --panel-bg: rgba(15, 15, 15, 0.85);
       --glyph-white: #ffffff;
       --glyph-red: #D71921;
       --border-color: #2a2a2a;
@@ -29,14 +29,29 @@
 
     #world-canvas {
       position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #000000; z-index: 1; cursor: crosshair;
+      background: #000000; z-index: 1; cursor: grab;
     }
+    #world-canvas:active { cursor: grabbing; }
+
+    /* Top Navigation Bar */
+    .top-nav {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000;
+      background: var(--panel-bg); border: 1px solid var(--border-color);
+      backdrop-filter: blur(16px); padding: 6px 12px; border-radius: 30px;
+      display: flex; gap: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    }
+    .nav-btn {
+      background: transparent; border: none; color: #888; font-size: 11px;
+      padding: 8px 16px; cursor: pointer; border-radius: 20px; letter-spacing: 1.5px;
+      transition: all 0.2s; font-weight: bold;
+    }
+    .nav-btn:hover, .nav-btn.active { background: #ffffff; color: #000000; }
 
     /* Dashboard Panel */
     .dashboard {
       position: absolute; top: 20px; left: 20px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
-      backdrop-filter: blur(12px); padding: 20px; border-radius: 4px; width: 280px;
+      backdrop-filter: blur(12px); padding: 20px; border-radius: 4px; width: 260px;
       box-shadow: 0 0 30px rgba(0,0,0,0.9); pointer-events: auto;
     }
     .brand-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px; margin-bottom: 15px; }
@@ -53,12 +68,6 @@
     }
     .filter-chip:hover, .filter-chip.active { background: #fff; color: #000; font-weight: bold; }
 
-    .manage-btn {
-      width: 100%; margin-top: 12px; background: transparent; border: 1px solid var(--border-color);
-      color: #aaa; font-size: 10px; padding: 6px; cursor: pointer; letter-spacing: 1px; text-align: center;
-    }
-    .manage-btn:hover { border-color: #fff; color: #fff; }
-
     .admin-btn {
       position: absolute; top: 20px; right: 20px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
@@ -72,7 +81,7 @@
     /* Dark Modals */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 2000;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 2000;
       justify-content: center; align-items: center;
     }
     .modal {
@@ -86,7 +95,6 @@
       color: #fff; padding: 10px; margin-bottom: 14px; font-size: 12px;
       font-family: 'Space Mono', monospace; border-radius: 2px;
     }
-    .modal input:focus, .modal select:focus { outline: none; border-color: var(--glyph-white); }
     .modal-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; }
     .btn {
       flex: 1; padding: 10px; background: #fff; color: #000; border: none;
@@ -94,18 +102,56 @@
     }
     .btn-cancel { background: transparent; color: #888; border: 1px solid #333; }
 
-    .city-item {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 8px 0; border-bottom: 1px solid #222; font-size: 11px;
+    /* Frosted Liquid Country Cards Grid View */
+    .cards-view-overlay {
+      display: none; position: fixed; top: 80px; left: 0; width: 100vw; height: calc(100vh - 80px);
+      z-index: 1500; background: rgba(0,0,0,0.92); backdrop-filter: blur(20px);
+      padding: 40px; overflow-y: auto;
     }
-    .city-actions span { cursor: pointer; margin-left: 10px; color: var(--glyph-red); }
-    .city-actions span:hover { text-decoration: underline; }
+    .cards-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px;
+      max-width: 1200px; margin: 0 auto;
+    }
+    
+    /* 液態磨砂卡片 */
+    .frosted-card {
+      position: relative; background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px;
+      padding: 24px; overflow: hidden; backdrop-filter: blur(15px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5); transition: transform 0.3s, border-color 0.3s;
+      cursor: pointer; height: 180px; display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .frosted-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.4); }
+    .frosted-card.full-unlocked { border-color: #00E5FF; box-shadow: 0 0 25px rgba(0, 229, 255, 0.3); }
+
+    /* 水流動態背景 (Liquid Water Wave) */
+    .liquid-bg {
+      position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(180deg, rgba(0, 162, 255, 0.4) 0%, rgba(0, 81, 255, 0.6) 100%);
+      transition: height 1s ease-in-out; z-index: 0;
+    }
+    .liquid-wave {
+      position: absolute; top: -12px; left: 0; width: 200%; height: 20px;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,120 L0,120 Z" fill="%2300a2ff" opacity="0.5"></path></svg>') repeat-x;
+      animation: wave 4s linear infinite;
+    }
+    @keyframes wave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+    .card-content { position: relative; z-index: 2; }
+    .card-country { font-size: 16px; font-weight: bold; letter-spacing: 2px; }
+    .card-stats { font-size: 11px; color: #aaa; margin-top: 4px; }
+    .card-percent { font-size: 32px; font-weight: bold; margin-top: 12px; letter-spacing: 1px; }
   </style>
 </head>
 <body>
 
-  <!-- Dashboard UI -->
-  <div class="dashboard">
+  <!-- Top Function Navigation Bar -->
+  <div class="top-nav">
+    <button class="nav-btn active" id="btn-world" onclick="switchView('MAP')">[ WORLD MAP ]</button>
+    <button class="nav-btn" id="btn-cards" onclick="switchView('CARDS')">[ COUNTRY CARDS ]</button>
+  </div>
+
+  <!-- Dashboard Panel -->
+  <div class="dashboard" id="main-dashboard">
     <div class="brand-header">
       <span class="brand-title">GLYPH // MAP</span>
       <div class="red-dot"></div>
@@ -122,8 +168,6 @@
       <div class="filter-chip" onclick="setFilter('AFRICA', this)">AFRICA</div>
       <div class="filter-chip" onclick="setFilter('OCEANIA', this)">OCEANIA</div>
     </div>
-
-    <button class="manage-btn" onclick="openManageModal()">[ EDIT / DELETE CITIES ]</button>
   </div>
 
   <!-- Admin Login Button -->
@@ -144,7 +188,7 @@
     </div>
   </div>
 
-  <!-- Add City Modal (可手動輸入 Coordinates) -->
+  <!-- Add City Modal -->
   <div class="modal-overlay" id="add-city-modal">
     <div class="modal">
       <h3>ADD NEW UNLOCKED CITY</h3>
@@ -173,18 +217,12 @@
     </div>
   </div>
 
-  <!-- Manage Modal -->
-  <div class="modal-overlay" id="manage-modal">
-    <div class="modal">
-      <h3>MANAGE UNLOCKED CITIES</h3>
-      <div id="city-list-container"></div>
-      <div class="modal-actions">
-        <button class="btn btn-cancel" onclick="closeManageModal()">CLOSE</button>
-      </div>
-    </div>
+  <!-- Country Cards Liquid View Overlay -->
+  <div class="cards-view-overlay" id="cards-view">
+    <div class="cards-grid" id="cards-container"></div>
   </div>
 
-  <!-- Canvas Map -->
+  <!-- Interactive Canvas Map -->
   <canvas id="world-canvas"></canvas>
 
   <script>
@@ -202,24 +240,33 @@
     let visitedCities = [];
     let currentFilter = 'ALL';
 
-    // 大洲專屬發光色值表
     const REGION_COLORS = {
-      'ASIA': { core: '#FF5252', glow: 'rgba(215, 25, 33, ' },      // 赤紅
-      'EUROPE': { core: '#80D8FF', glow: 'rgba(0, 229, 255, ' },    // 冰藍
-      'AMERICAS': { core: '#FFFFFF', glow: 'rgba(255, 255, 255, ' }, // 純白
-      'AFRICA': { core: '#FFD740', glow: 'rgba(255, 179, 0, ' },     // 琥珀黃
-      'OCEANIA': { core: '#69F0AE', glow: 'rgba(0, 230, 118, ' }     // 翡翠綠
+      'ASIA': { core: '#FF5252', glow: 'rgba(215, 25, 33, ' },
+      'EUROPE': { core: '#80D8FF', glow: 'rgba(0, 229, 255, ' },
+      'AMERICAS': { core: '#FFFFFF', glow: 'rgba(255, 255, 255, ' },
+      'AFRICA': { core: '#FFD740', glow: 'rgba(255, 179, 0, ' },
+      'OCEANIA': { core: '#69F0AE', glow: 'rgba(0, 230, 118, ' }
     };
+
+    function switchView(view) {
+      if (view === 'CARDS') {
+        document.getElementById('cards-view').style.display = 'block';
+        document.getElementById('btn-cards').classList.add('active');
+        document.getElementById('btn-world').classList.remove('active');
+        renderCountryCards();
+      } else {
+        document.getElementById('cards-view').style.display = 'none';
+        document.getElementById('btn-world').classList.add('active');
+        document.getElementById('btn-cards').classList.remove('active');
+      }
+    }
 
     function openLoginModal() { document.getElementById('login-modal').style.display = 'flex'; }
     function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
-    function openManageModal() { renderCityManageList(); document.getElementById('manage-modal').style.display = 'flex'; }
-    function closeManageModal() { document.getElementById('manage-modal').style.display = 'none'; }
 
     function openAddCityModal(lat, lng) {
       if (lat !== undefined && lng !== undefined) {
         document.getElementById('add-coords').value = `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
-        
         if (lng > 60 && lng < 150 && lat > 0) document.getElementById('add-region').value = 'ASIA';
         else if (lng > -15 && lng < 50 && lat > 35) document.getElementById('add-region').value = 'EUROPE';
         else if (lng < -30) document.getElementById('add-region').value = 'AMERICAS';
@@ -228,15 +275,12 @@
       } else {
         document.getElementById('add-coords').value = '';
       }
-
       document.getElementById('add-city-name').value = '';
       document.getElementById('add-country-name').value = '';
       document.getElementById('add-city-modal').style.display = 'flex';
     }
 
-    function closeAddCityModal() {
-      document.getElementById('add-city-modal').style.display = 'none';
-    }
+    function closeAddCityModal() { document.getElementById('add-city-modal').style.display = 'none'; }
 
     async function handleLogin() {
       const email = document.getElementById('login-email').value;
@@ -256,48 +300,51 @@
       }
     }
 
-    // Canvas Renderer
+    // Smooth Canvas Smooth Drag & Zoom Engine
     const canvas = document.getElementById('world-canvas');
     const ctx = canvas.getContext('2d');
 
     let width = canvas.width = window.innerWidth;
     let height = canvas.height = window.innerHeight;
 
-    let centerPos = [width / 2, height / 1.6];
-    let scaleVal = width / 6.5;
+    let zoomLevel = 1.0;
+    let panOffset = { x: 0, y: 0 };
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
 
-    const projection = d3.geoMercator().scale(scaleVal).translate(centerPos);
+    const projection = d3.geoMercator().scale(width / 6.5).translate([width / 2, height / 1.6]);
     const pathGenerator = d3.geoPath().projection(projection).context(ctx);
+
+    // Mouse Dragging Smoothness
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragStart = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      panOffset.x = e.clientX - dragStart.x;
+      panOffset.y = e.clientY - dragStart.y;
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    // Smooth Scroll Zoom
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      zoomLevel = Math.max(0.6, Math.min(zoomLevel * zoomFactor, 8.0));
+    }, { passive: false });
 
     window.addEventListener('resize', () => {
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
-      updateProjection();
     });
-
-    function updateProjection() {
-      projection.scale(scaleVal).translate(centerPos);
-    }
 
     function setFilter(region, element) {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
       currentFilter = region;
-
-      if (region === 'ASIA') {
-        scaleVal = width / 3.5; centerPos = [width * 0.1, height * 1.1];
-      } else if (region === 'EUROPE') {
-        scaleVal = width / 3.2; centerPos = [width * 0.45, height * 1.5];
-      } else if (region === 'AMERICAS') {
-        scaleVal = width / 4.0; centerPos = [width * 0.85, height * 0.9];
-      } else if (region === 'AFRICA') {
-        scaleVal = width / 3.8; centerPos = [width * 0.4, height * 0.7];
-      } else if (region === 'OCEANIA') {
-        scaleVal = width / 3.5; centerPos = [width * -0.2, height * 0.3];
-      } else {
-        scaleVal = width / 6.5; centerPos = [width / 2, height / 1.6];
-      }
-      updateProjection();
     }
 
     let worldGeoData = null;
@@ -314,18 +361,22 @@
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
 
+      ctx.save();
+      ctx.translate(panOffset.x, panOffset.y);
+      ctx.scale(zoomLevel, zoomLevel);
+
       // Dot Matrix Background
       ctx.fillStyle = '#181818';
       const gridSize = 24;
-      for (let x = 0; x < width; x += gridSize) {
-        for (let y = 0; y < height; y += gridSize) {
+      for (let x = -width; x < width * 2; x += gridSize) {
+        for (let y = -height; y < height * 2; y += gridSize) {
           ctx.beginPath();
           ctx.arc(x, y, 1, 0, Math.PI * 2);
           ctx.fill();
         }
       }
 
-      // World Map Vector Boundaries
+      // World Map Boundaries
       if (window.topojson && worldGeoData) {
         const countries = topojson.feature(worldGeoData, worldGeoData.objects.countries);
         ctx.beginPath();
@@ -333,11 +384,13 @@
         ctx.fillStyle = '#090909';
         ctx.fill();
         ctx.strokeStyle = '#262626';
-        ctx.lineWidth = 0.8;
+        ctx.lineWidth = 0.8 / zoomLevel;
         ctx.stroke();
       }
 
-      // Render Region-Colored Glow Points
+      // 城市文字碰撞檢測陣列 (Collision Detection Box)
+      const labelBoxes = [];
+
       visitedCities.forEach(city => {
         if (currentFilter !== 'ALL' && city.region && city.region !== currentFilter) return;
 
@@ -346,8 +399,8 @@
 
         const regionTheme = REGION_COLORS[city.region || 'ASIA'] || REGION_COLORS['ASIA'];
 
-        // Glow Layer
-        const glowRadius = 10 + Math.sin(pulseTime) * 4;
+        // Glow Point
+        const glowRadius = (10 + Math.sin(pulseTime) * 4) / Math.sqrt(zoomLevel);
         const gradient = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], glowRadius);
         gradient.addColorStop(0, regionTheme.glow + '1)');
         gradient.addColorStop(0.4, regionTheme.glow + '0.5)');
@@ -358,34 +411,51 @@
         ctx.arc(pt[0], pt[1], glowRadius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Core Point
         ctx.fillStyle = regionTheme.core;
         ctx.beginPath();
-        ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2);
+        ctx.arc(pt[0], pt[1], 3 / Math.sqrt(zoomLevel), 0, Math.PI * 2);
         ctx.fill();
 
-        // Label
-        ctx.fillStyle = '#a0a0a0';
-        ctx.font = '10px Space Mono';
-        ctx.fillText(`> ${city.city_name.toUpperCase()}`, pt[0] + 10, pt[1] + 4);
+        // 防止密集文字重疊 (Collision Check Logic)
+        const labelText = `> ${city.city_name.toUpperCase()}`;
+        const labelX = pt[0] + 8 / zoomLevel;
+        const labelY = pt[1] + 3 / zoomLevel;
+
+        let hasOverlap = false;
+        for (let box of labelBoxes) {
+          if (Math.abs(box.x - labelX) < 40 / zoomLevel && Math.abs(box.y - labelY) < 12 / zoomLevel) {
+            hasOverlap = true;
+            break;
+          }
+        }
+
+        if (!hasOverlap || zoomLevel > 2.0) {
+          labelBoxes.push({ x: labelX, y: labelY });
+          ctx.fillStyle = '#a0a0a0';
+          ctx.font = `${Math.max(8, 10 / Math.sqrt(zoomLevel))}px Space Mono`;
+          ctx.fillText(labelText, labelX, labelY);
+        }
       });
 
+      ctx.restore();
       requestAnimationFrame(renderCanvas);
     }
 
     renderCanvas();
 
+    // Click Canvas to Add
     canvas.addEventListener('click', (e) => {
+      if (isDragging && (Math.abs(panOffset.x) > 5 || Math.abs(panOffset.y) > 5)) return;
       if (!currentUser) {
         alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號！');
         return;
       }
 
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const clickX = (e.clientX - rect.left - panOffset.x) / zoomLevel;
+      const clickY = (e.clientY - rect.top - panOffset.y) / zoomLevel;
 
-      const coords = projection.invert([x, y]);
+      const coords = projection.invert([clickX, clickY]);
       if (!coords) return;
 
       openAddCityModal(coords[1], coords[0]);
@@ -397,16 +467,11 @@
       const country = document.getElementById('add-country-name').value.trim();
       const region = document.getElementById('add-region').value;
 
-      if (!coordsInput) return alert('請輸入 Coordinates 經緯度！');
-      if (!cityName) return alert('請輸入城市名稱！');
+      if (!coordsInput || !cityName) return alert('請填寫完整資訊！');
 
       const parts = coordsInput.split(',');
-      if (parts.length !== 2) return alert('Coordinates 格式不正確！請填寫如: 35.67, 139.65');
-
       const lat = parseFloat(parts[0].trim());
       const lng = parseFloat(parts[1].trim());
-
-      if (isNaN(lat) || isNaN(lng)) return alert('經緯度必須為數字！');
 
       if (supabaseClient) {
         const { data, error } = await supabaseClient.from('visited_cities').insert([
@@ -421,10 +486,7 @@
           }
         ]).select();
 
-        if (error) {
-          alert('INSERT ERROR: ' + error.message);
-          return;
-        }
+        if (error) return alert('INSERT ERROR: ' + error.message);
         if (data) visitedCities.push(data[0]);
       } else {
         visitedCities.push({ city_name: cityName, country, region, lat, lng });
@@ -434,41 +496,55 @@
       closeAddCityModal();
     }
 
-    function renderCityManageList() {
-      const container = document.getElementById('city-list-container');
+    // 渲染高級磨砂液態卡片 (Frosted Liquid Cards Renderer)
+    function renderCountryCards() {
+      const container = document.getElementById('cards-container');
       container.innerHTML = '';
 
-      if (visitedCities.length === 0) {
-        container.innerHTML = '<div style="color:#666; font-size:11px;">NO CITIES UNLOCKED YET.</div>';
+      // 統計各國家城市數量
+      const countryStats = {};
+      visitedCities.forEach(c => {
+        const country = (c.country || 'UNKNOWN').toUpperCase();
+        countryStats[country] = (countryStats[country] || 0) + 1;
+      });
+
+      // 預設各國目標城市總數 (可自訂)
+      const TARGET_CITIES = { 'JAPAN': 10, 'NEW ZEALAND': 7, 'CHINA': 20, 'USA': 15, 'UNITED KINGDOM': 8, 'FRANCE': 6 };
+
+      const countries = Object.keys(countryStats);
+
+      if (countries.length === 0) {
+        container.innerHTML = '<div style="color:#666; font-size:12px;">NO CITIES UNLOCKED YET.</div>';
         return;
       }
 
-      visitedCities.forEach((city, index) => {
-        const div = document.createElement('div');
-        div.className = 'city-item';
-        div.innerHTML = `
-          <span>> ${city.city_name.toUpperCase()} [${city.region || 'ASIA'}]</span>
-          <div class="city-actions">
-            <span onclick="deleteCity(${index})">[DEL]</span>
+      countries.forEach(country => {
+        const count = countryStats[country];
+        const target = TARGET_CITIES[country] || 10;
+        const percent = Math.min(100, Math.round((count / target) * 100));
+
+        const isFull = percent >= 100;
+
+        const card = document.createElement('div');
+        card.className = `frosted-card ${isFull ? 'full-unlocked' : ''}`;
+
+        card.innerHTML = `
+          <div class="liquid-bg" style="height: ${percent}%;">
+            <div class="liquid-wave"></div>
+          </div>
+          <div class="card-content">
+            <div class="card-country">${country}</div>
+            <div class="card-stats">${count} / ${target} CITIES EXPLORED</div>
+          </div>
+          <div class="card-content">
+            <div class="card-percent" style="color: ${isFull ? '#00E5FF' : '#ffffff'};">
+              ${percent}% ${isFull ? '✦ FULL' : ''}
+            </div>
           </div>
         `;
-        container.appendChild(div);
+
+        container.appendChild(card);
       });
-    }
-
-    async function deleteCity(index) {
-      if (!currentUser) return alert('請先登入管理員！');
-      const target = visitedCities[index];
-      if (!confirm(`Confirm to delete ${target.city_name}?`)) return;
-
-      if (supabaseClient && target.id) {
-        const { error } = await supabaseClient.from('visited_cities').delete().eq('id', target.id);
-        if (error) return alert('DELETE ERROR: ' + error.message);
-      }
-
-      visitedCities.splice(index, 1);
-      document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
-      renderCityManageList();
     }
 
     async function fetchVisitedCities() {
