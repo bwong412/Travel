@@ -34,6 +34,26 @@
     }
     #world-canvas:active { cursor: grabbing; }
 
+    /* Hover 2秒跳出的國家 Tooltip 懸浮框 */
+    .country-tooltip {
+      position: absolute;
+      display: none;
+      pointer-events: none;
+      z-index: 3000;
+      background: rgba(10, 10, 10, 0.9);
+      border: 1px solid var(--glyph-cyan);
+      color: #ffffff;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 1.5px;
+      border-radius: 4px;
+      box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+      backdrop-filter: blur(8px);
+      transform: translate(15px, 15px);
+      transition: opacity 0.2s ease;
+    }
+
     /* Top Navigation Bar */
     .top-nav {
       position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1000;
@@ -163,7 +183,7 @@
       transform: rotateY(180deg);
     }
 
-    /* 徹底修復透底 Bug：嚴格設置 backface-visibility: hidden */
+    /* 徹底解決反轉文字透底 Bug: 嚴格隔離 + 隔離背面白/黑色繪製層 */
     .deep-card-front, .deep-card-back {
       position: absolute;
       inset: 0;
@@ -177,7 +197,6 @@
       box-shadow: 0 15px 35px rgba(0,0,0,0.8);
     }
 
-    /* 正面樣式 */
     .deep-card-front {
       background-size: cover;
       background-position: center;
@@ -186,6 +205,7 @@
       flex-direction: column;
       justify-content: flex-end;
       padding: 20px;
+      z-index: 2;
     }
 
     .deep-card-overlay {
@@ -210,16 +230,17 @@
       background: var(--glyph-cyan); box-shadow: 0 0 10px var(--glyph-cyan);
     }
 
-    /* 卡片背面：簡潔極致，僅國旗 + 國名 */
+    /* 卡片背面：極簡不透明黑底，只有國旗與國名 */
     .deep-card-back {
       transform: rotateY(180deg);
-      background: #0a0a0a;
+      background-color: #0a0a0a !important; /* 不透明純黑底色 */
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       padding: 24px;
       border: 1px solid rgba(255, 255, 255, 0.2);
+      z-index: 1;
     }
 
     .flag-large-img {
@@ -247,6 +268,9 @@
   </style>
 </head>
 <body>
+
+  <!-- Tooltip 懸浮框 -->
+  <div class="country-tooltip" id="country-tooltip"></div>
 
   <!-- Top Navigation -->
   <div class="top-nav">
@@ -363,14 +387,13 @@
     let visitedCities = [];
     let currentFilter = 'ALL';
 
-    // 修正：KOREA 使用首爾景福宮經典夜景高清圖
     const STATIC_LANDMARKS = {
       'USA': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
       'UNITED STATES': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
       'FIJI': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&auto=format&fit=crop',
       'AUSTRALIA': 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800&auto=format&fit=crop',
       'JAPAN': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&auto=format&fit=crop',
-      'KOREA': 'https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800&auto=format&fit=crop', // 首爾宮殿夜景
+      'KOREA': 'https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800&auto=format&fit=crop',
       'SOUTH KOREA': 'https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800&auto=format&fit=crop',
       'SINGAPORE': 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=800&auto=format&fit=crop',
       'MALAYSIA': 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=800&auto=format&fit=crop',
@@ -495,6 +518,11 @@
     let isDragging = false;
     let dragStart = { x: 0, y: 0 };
 
+    // Hover 著燈與 2 秒計時器狀態
+    let hoveredCountryFeature = null;
+    let hoverTimer = null;
+    const tooltipEl = document.getElementById('country-tooltip');
+
     const projection = d3.geoMercator().scale(width / 6.5).translate([width / 2, height / 1.6]);
     const pathGenerator = d3.geoPath().projection(projection).context(ctx);
 
@@ -503,12 +531,59 @@
       dragStart = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
     });
 
+    // MacBook 滑鼠滑動碰撞檢測（Hover Highlight + 2 秒停留顯示國名）
     canvas.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      panOffset.x = e.clientX - dragStart.x;
-      panOffset.y = e.clientY - dragStart.y;
-      targetPan.x = panOffset.x;
-      targetPan.y = panOffset.y;
+      if (isDragging) {
+        panOffset.x = e.clientX - dragStart.x;
+        panOffset.y = e.clientY - dragStart.y;
+        targetPan.x = panOffset.x;
+        targetPan.y = panOffset.y;
+        return;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = (e.clientX - rect.left - panOffset.x) / zoomLevel;
+      const mouseY = (e.clientY - rect.top - panOffset.y) / zoomLevel;
+
+      const coords = projection.invert([mouseX, mouseY]);
+
+      if (coords && worldGeoData) {
+        const countries = topojson.feature(worldGeoData, worldGeoData.objects.countries);
+        let found = null;
+
+        for (let feature of countries.features) {
+          if (d3.geoContains(feature, coords)) {
+            found = feature;
+            break;
+          }
+        }
+
+        if (found !== hoveredCountryFeature) {
+          hoveredCountryFeature = found;
+          clearTimeout(hoverTimer);
+          tooltipEl.style.display = 'none';
+
+          if (hoveredCountryFeature) {
+            const countryName = (hoveredCountryFeature.properties.name || '').toUpperCase();
+            
+            // 指住停留超過 2 秒觸發 Tooltip
+            hoverTimer = setTimeout(() => {
+              tooltipEl.innerText = `> ${countryName}`;
+              tooltipEl.style.left = `${e.clientX}px`;
+              tooltipEl.style.top = `${e.clientY}px`;
+              tooltipEl.style.display = 'block';
+            }, 2000);
+          }
+        } else if (hoveredCountryFeature && tooltipEl.style.display === 'block') {
+          // 更新 Tooltip 位置跟隨滑鼠
+          tooltipEl.style.left = `${e.clientX}px`;
+          tooltipEl.style.top = `${e.clientY}px`;
+        }
+      } else {
+        hoveredCountryFeature = null;
+        clearTimeout(hoverTimer);
+        tooltipEl.style.display = 'none';
+      }
     });
 
     window.addEventListener('mouseup', () => { isDragging = false; });
@@ -627,6 +702,17 @@
             ctx.stroke();
           }
         });
+
+        // 滑鼠 Hover 著燈效果（Hover Highlighting）
+        if (hoveredCountryFeature) {
+          ctx.beginPath();
+          pathGenerator(hoveredCountryFeature);
+          ctx.fillStyle = 'rgba(0, 229, 255, 0.25)'; // 青亮光填滿
+          ctx.fill();
+          ctx.strokeStyle = '#00E5FF';
+          ctx.lineWidth = 1.2 / zoomLevel;
+          ctx.stroke();
+        }
       }
 
       const labelBoxes = [];
@@ -770,7 +856,6 @@
       renderCityManageList();
     }
 
-    // 翻牌卡片：背面純粹極簡 (只有國旗 + 國名)
     function renderCountryCards() {
       const container = document.getElementById('cards-container');
       container.innerHTML = '';
@@ -826,7 +911,7 @@
               </div>
             </div>
 
-            <!-- 背面: 極簡黑底國旗視角 (Clean Flag View Only) -->
+            <!-- 背面: 純黑色底色，只有國旗與乾淨國名 -->
             <div class="deep-card-back">
               <img class="flag-large-img" src="${flagUrl}" alt="${country} flag">
               <div class="flag-country-name">#${country}</div>
