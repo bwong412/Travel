@@ -20,7 +20,6 @@
       --panel-bg: rgba(12, 12, 12, 0.88);
       --glyph-white: #ffffff;
       --glyph-red: #D71921;
-      --glyph-cyan: #00E5FF;
       --border-color: rgba(255, 255, 255, 0.15);
       --text-muted: #888888;
     }
@@ -40,15 +39,15 @@
       display: none;
       pointer-events: none;
       z-index: 3000;
-      background: rgba(10, 10, 10, 0.9);
-      border: 1px solid var(--glyph-cyan);
+      background: rgba(15, 15, 15, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.4);
       color: #ffffff;
       padding: 6px 12px;
       font-size: 11px;
       font-weight: bold;
       letter-spacing: 1.5px;
       border-radius: 4px;
-      box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(8px);
       transform: translate(15px, 15px);
       transition: opacity 0.2s ease;
@@ -183,7 +182,6 @@
       transform: rotateY(180deg);
     }
 
-    /* 徹底解決反轉文字透底 Bug: 嚴格隔離 + 隔離背面白/黑色繪製層 */
     .deep-card-front, .deep-card-back {
       position: absolute;
       inset: 0;
@@ -227,13 +225,12 @@
       height: 100%; background: #ffffff; border-radius: 4px; transition: width 0.8s ease;
     }
     .progress-bar-fill.full {
-      background: var(--glyph-cyan); box-shadow: 0 0 10px var(--glyph-cyan);
+      background: #ffffff; box-shadow: 0 0 10px #ffffff;
     }
 
-    /* 卡片背面：極簡不透明黑底，只有國旗與國名 */
     .deep-card-back {
       transform: rotateY(180deg);
-      background-color: #0a0a0a !important; /* 不透明純黑底色 */
+      background-color: #0a0a0a !important;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -518,7 +515,6 @@
     let isDragging = false;
     let dragStart = { x: 0, y: 0 };
 
-    // Hover 著燈與 2 秒計時器狀態
     let hoveredCountryFeature = null;
     let hoverTimer = null;
     const tooltipEl = document.getElementById('country-tooltip');
@@ -531,7 +527,6 @@
       dragStart = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
     });
 
-    // MacBook 滑鼠滑動碰撞檢測（Hover Highlight + 2 秒停留顯示國名）
     canvas.addEventListener('mousemove', (e) => {
       if (isDragging) {
         panOffset.x = e.clientX - dragStart.x;
@@ -566,7 +561,6 @@
           if (hoveredCountryFeature) {
             const countryName = (hoveredCountryFeature.properties.name || '').toUpperCase();
             
-            // 指住停留超過 2 秒觸發 Tooltip
             hoverTimer = setTimeout(() => {
               tooltipEl.innerText = `> ${countryName}`;
               tooltipEl.style.left = `${e.clientX}px`;
@@ -575,7 +569,6 @@
             }, 2000);
           }
         } else if (hoveredCountryFeature && tooltipEl.style.display === 'block') {
-          // 更新 Tooltip 位置跟隨滑鼠
           tooltipEl.style.left = `${e.clientX}px`;
           tooltipEl.style.top = `${e.clientY}px`;
         }
@@ -703,13 +696,13 @@
           }
         });
 
-        // 滑鼠 Hover 著燈效果（Hover Highlighting）
+        /* 高級淡白微光 Hover 著燈效果 */
         if (hoveredCountryFeature) {
           ctx.beginPath();
           pathGenerator(hoveredCountryFeature);
-          ctx.fillStyle = 'rgba(0, 229, 255, 0.25)'; // 青亮光填滿
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.18)'; // 高級淡白色填滿
           ctx.fill();
-          ctx.strokeStyle = '#00E5FF';
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'; // 白色細線邊框
           ctx.lineWidth = 1.2 / zoomLevel;
           ctx.stroke();
         }
