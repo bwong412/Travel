@@ -108,9 +108,9 @@
   <canvas id="world-canvas"></canvas>
 
   <script>
-    // 1. Supabase 自動設置 (已帶入你的專屬 Project URL & JWT Key)
+    // 1. Supabase 自動設置 (已帶入你的專屬 Project URL & Publishable Key)
     const SUPABASE_URL = 'https://pmrhldqgabasvohsupbn.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcmhsZHFnYWJhc3ZvaHN1cGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAzMjI0MDAsImV4cCI6MjA1NTg5ODQwMH0.P1W7uY0L9bK2-g1Y0vT8G9cK2W1v8N0M9L8k1J2H3g4';
+    const SUPABASE_ANON_KEY = 'sb_publishable_R9BjF5Dl_puhHVzvPwd7sA_vwRJwO_E';
 
     let supabaseClient = null;
     try {
@@ -132,7 +132,7 @@
       const password = document.getElementById('login-password').value;
 
       if (!supabaseClient) {
-        alert("Supabase SDK 載入失敗，請重試");
+        alert("Supabase SDK 載入失敗，請檢查網絡連線");
         return;
       }
 
