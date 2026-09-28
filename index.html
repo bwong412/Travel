@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GLYPH // TRAVEL MAP</title>
   
-  <!-- Supabase & D3 TopoJSON Client -->
+  <!-- Supabase & D3 Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-array@3"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-geo@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 
   <!-- Space Mono Font -->
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -32,10 +32,11 @@
       background: #000000; z-index: 1; cursor: crosshair;
     }
 
+    /* Dashboard Panel */
     .dashboard {
       position: absolute; top: 20px; left: 20px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
-      backdrop-filter: blur(12px); padding: 20px; border-radius: 4px; width: 260px;
+      backdrop-filter: blur(12px); padding: 20px; border-radius: 4px; width: 280px;
       box-shadow: 0 0 30px rgba(0,0,0,0.9); pointer-events: auto;
     }
     .brand-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px; margin-bottom: 15px; }
@@ -44,6 +45,22 @@
     .stat-number { font-size: 36px; font-weight: bold; }
     .stat-label { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; margin-top: 4px; }
 
+    /* Filter Menu */
+    .filter-container { margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .filter-chip {
+      background: #151515; border: 1px solid var(--border-color); color: #888;
+      font-size: 9px; padding: 4px 8px; cursor: pointer; border-radius: 2px; letter-spacing: 1px;
+    }
+    .filter-chip:hover, .filter-chip.active { background: #fff; color: #000; font-weight: bold; }
+
+    /* Manage Button */
+    .manage-btn {
+      width: 100%; margin-top: 12px; background: transparent; border: 1px solid var(--border-color);
+      color: #aaa; font-size: 10px; padding: 6px; cursor: pointer; letter-spacing: 1px; text-align: center;
+    }
+    .manage-btn:hover { border-color: #fff; color: #fff; }
+
+    /* Admin Login Button */
     .admin-btn {
       position: absolute; top: 20px; right: 20px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
@@ -54,6 +71,7 @@
     .admin-btn:hover { border-color: var(--glyph-white); background: #1f1f1f; }
     .admin-btn.active { border-color: var(--glyph-red); color: var(--glyph-red); }
 
+    /* Modals */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 2000;
@@ -61,26 +79,33 @@
     }
     .modal {
       background: #0d0d0d; border: 1px solid #333;
-      padding: 30px; width: 320px; border-radius: 4px; box-shadow: 0 0 40px rgba(0,0,0,0.9);
+      padding: 25px; width: 360px; max-height: 80vh; overflow-y: auto; border-radius: 4px; box-shadow: 0 0 40px rgba(0,0,0,0.9);
     }
-    .modal h3 { font-size: 13px; margin-bottom: 20px; letter-spacing: 1px; color: #fff; }
+    .modal h3 { font-size: 12px; margin-bottom: 15px; letter-spacing: 1px; color: #fff; }
     .modal input {
       width: 100%; background: #161616; border: 1px solid #333;
-      color: #fff; padding: 12px; margin-bottom: 15px; font-size: 12px;
-      font-family: 'Space Mono', monospace;
+      color: #fff; padding: 10px; margin-bottom: 12px; font-size: 12px;
     }
-    .modal input:focus { outline: none; border-color: var(--glyph-white); }
-    .modal-actions { display: flex; justify-content: space-between; gap: 10px; }
+    .modal-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 15px; }
     .btn {
-      flex: 1; padding: 12px; background: #fff; color: #000; border: none;
+      flex: 1; padding: 10px; background: #fff; color: #000; border: none;
       font-weight: bold; cursor: pointer; font-size: 11px; letter-spacing: 1px;
-      font-family: 'Space Mono', monospace;
     }
     .btn-cancel { background: transparent; color: #888; border: 1px solid #333; }
+
+    /* City Manage List Item */
+    .city-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid #222; font-size: 11px;
+    }
+    .city-actions span { cursor: pointer; margin-left: 10px; color: var(--glyph-red); }
+    .city-actions span.edit { color: #888; }
+    .city-actions span:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
 
+  <!-- Dashboard UI -->
   <div class="dashboard">
     <div class="brand-header">
       <span class="brand-title">GLYPH // MAP</span>
@@ -88,10 +113,25 @@
     </div>
     <div class="stat-number" id="city-count">00</div>
     <div class="stat-label">CITIES UNLOCKED</div>
+
+    <!-- Filter Buttons -->
+    <div class="filter-container">
+      <div class="filter-chip active" onclick="setFilter('ALL', this)">ALL</div>
+      <div class="filter-chip" onclick="setFilter('ASIA', this)">ASIA</div>
+      <div class="filter-chip" onclick="setFilter('EUROPE', this)">EUROPE</div>
+      <div class="filter-chip" onclick="setFilter('AMERICAS', this)">AMERICAS</div>
+      <div class="filter-chip" onclick="setFilter('AFRICA', this)">AFRICA</div>
+      <div class="filter-chip" onclick="setFilter('OCEANIA', this)">OCEANIA</div>
+    </div>
+
+    <!-- Manage Cities Modal Trigger -->
+    <button class="manage-btn" onclick="openManageModal()">[ EDIT / DELETE CITIES ]</button>
   </div>
 
+  <!-- Admin Login Button -->
   <button class="admin-btn" id="admin-btn" onclick="openLoginModal()">[ LOGIN ]</button>
 
+  <!-- Login Modal -->
   <div class="modal-overlay" id="login-modal">
     <div class="modal">
       <h3>ADMIN // AUTHENTICATION</h3>
@@ -104,6 +144,18 @@
     </div>
   </div>
 
+  <!-- Manage Modal -->
+  <div class="modal-overlay" id="manage-modal">
+    <div class="modal">
+      <h3>MANAGE UNLOCKED CITIES</h3>
+      <div id="city-list-container"></div>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeManageModal()">CLOSE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Canvas Map -->
   <canvas id="world-canvas"></canvas>
 
   <script>
@@ -119,9 +171,12 @@
 
     let currentUser = null;
     let visitedCities = [];
+    let currentFilter = 'ALL';
 
     function openLoginModal() { document.getElementById('login-modal').style.display = 'flex'; }
     function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
+    function openManageModal() { renderCityManageList(); document.getElementById('manage-modal').style.display = 'flex'; }
+    function closeManageModal() { document.getElementById('manage-modal').style.display = 'none'; }
 
     async function handleLogin() {
       const email = document.getElementById('login-email').value;
@@ -141,32 +196,56 @@
       }
     }
 
+    // 1. D3 Canvas setup
     const canvas = document.getElementById('world-canvas');
     const ctx = canvas.getContext('2d');
 
     let width = canvas.width = window.innerWidth;
     let height = canvas.height = window.innerHeight;
 
+    let centerPos = [width / 2, height / 1.6];
+    let scaleVal = width / 6.5;
+
+    const projection = d3.geoMercator().scale(scaleVal).translate(centerPos);
+    const pathGenerator = d3.geoPath().projection(projection).context(ctx);
+
     window.addEventListener('resize', () => {
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
-      projection.translate([width / 2, height / 1.6]).scale(width / 6.5);
+      updateProjection();
     });
 
-    // 使用 d3-geo 正確地將世界經緯度投影到螢幕 Canvas
-    const projection = d3.geoMercator()
-      .scale(width / 6.5)
-      .translate([width / 2, height / 1.6]);
+    function updateProjection() {
+      projection.scale(scaleVal).translate(centerPos);
+    }
 
-    const pathGenerator = d3.geoPath().projection(projection).context(ctx);
+    // 大洲 Filter 定位視角轉換
+    function setFilter(region, element) {
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      element.classList.add('active');
+      currentFilter = region;
 
-    // 載入與繪製幾何陸地
+      if (region === 'ASIA') {
+        scaleVal = width / 3.5; centerPos = [width * 0.1, height * 1.1];
+      } else if (region === 'EUROPE') {
+        scaleVal = width / 3.2; centerPos = [width * 0.45, height * 1.5];
+      } else if (region === 'AMERICAS') {
+        scaleVal = width / 4.0; centerPos = [width * 0.85, height * 0.9];
+      } else if (region === 'AFRICA') {
+        scaleVal = width / 3.8; centerPos = [width * 0.4, height * 0.7];
+      } else if (region === 'OCEANIA') {
+        scaleVal = width / 3.5; centerPos = [width * -0.2, height * 0.3];
+      } else {
+        scaleVal = width / 6.5; centerPos = [width / 2, height / 1.6];
+      }
+      updateProjection();
+    }
+
+    // 載入世界幾何圖形
     let worldGeoData = null;
     fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
       .then(res => res.json())
       .then(data => {
-        // 解壓幾何地圖
-        const features = data.objects ? data.objects.countries : null;
         worldGeoData = data;
         fetchVisitedCities();
       }).catch(e => fetchVisitedCities());
@@ -177,7 +256,7 @@
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
 
-      // A. Nothing 點陣星空背景
+      // A. Nothing Dot Matrix
       ctx.fillStyle = '#181818';
       const gridSize = 24;
       for (let x = 0; x < width; x += gridSize) {
@@ -188,19 +267,19 @@
         }
       }
 
-      // B. 繪製精細的世界地圖陸地輪廓 (Nothing Dark Theme)
+      // B. 世界陸地輪廓 (國界線)
       if (window.topojson && worldGeoData) {
         const countries = topojson.feature(worldGeoData, worldGeoData.objects.countries);
         ctx.beginPath();
         pathGenerator(countries);
-        ctx.fillStyle = '#0a0a0a';
+        ctx.fillStyle = '#090909';
         ctx.fill();
-        ctx.strokeStyle = '#2a2a2a';
+        ctx.strokeStyle = '#262626';
         ctx.lineWidth = 0.8;
         ctx.stroke();
       }
 
-      // C. 繪製去過的城市 LED Glow 點
+      // C. 繪製 Glow 城市標記點
       visitedCities.forEach(city => {
         const pt = projection([city.lng, city.lat]);
         if (!pt) return;
@@ -231,7 +310,7 @@
 
     renderCanvas();
 
-    // 點擊新增城市
+    // 2. Click Canvas to Add City
     canvas.addEventListener('click', async (e) => {
       if (!currentUser) {
         alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號！');
@@ -248,15 +327,13 @@
       const lng = coords[0];
       const lat = coords[1];
 
-      const cityName = prompt(`[ADD CITY] Enter City Name at (${lat.toFixed(2)}, ${lng.toFixed(2)}):`);
+      const cityName = prompt(`[ADD CITY] City Name at (${lat.toFixed(2)}, ${lng.toFixed(2)}):`);
       if (!cityName) return;
 
       const country = prompt(`[ADD CITY] Country Name:`) || '';
 
-      const newCity = { city_name: cityName, country, lat, lng };
-
-      if (supabaseClient && currentUser.id) {
-        const { error } = await supabaseClient.from('visited_cities').insert([
+      if (supabaseClient) {
+        const { data, error } = await supabaseClient.from('visited_cities').insert([
           {
             city_code: cityName.substring(0,3).toUpperCase() + Math.floor(Math.random() * 100),
             city_name: cityName,
@@ -265,16 +342,73 @@
             lng: lng,
             is_visited: true
           }
-        ]);
+        ]).select();
+
         if (error) {
           alert('INSERT ERROR: ' + error.message);
           return;
         }
+        if (data) visitedCities.push(data[0]);
+      } else {
+        visitedCities.push({ city_name: cityName, country, lat, lng });
       }
 
-      visitedCities.push(newCity);
       document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
     });
+
+    // 3. Edit & Delete Logic
+    function renderCityManageList() {
+      const container = document.getElementById('city-list-container');
+      container.innerHTML = '';
+
+      if (visitedCities.length === 0) {
+        container.innerHTML = '<div style="color:#666; font-size:11px;">NO CITIES UNLOCKED YET.</div>';
+        return;
+      }
+
+      visitedCities.forEach((city, index) => {
+        const div = document.createElement('div');
+        div.className = 'city-item';
+        div.innerHTML = `
+          <span>> ${city.city_name.toUpperCase()} (${(city.country || 'N/A').toUpperCase()})</span>
+          <div class="city-actions">
+            <span class="edit" onclick="editCity(${index})">[EDIT]</span>
+            <span onclick="deleteCity(${index})">[DEL]</span>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function deleteCity(index) {
+      if (!currentUser) return alert('請先登入管理員！');
+      const target = visitedCities[index];
+      if (!confirm(`Confirm to delete ${target.city_name}?`)) return;
+
+      if (supabaseClient && target.id) {
+        const { error } = await supabaseClient.from('visited_cities').delete().eq('id', target.id);
+        if (error) return alert('DELETE ERROR: ' + error.message);
+      }
+
+      visitedCities.splice(index, 1);
+      document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
+      renderCityManageList();
+    }
+
+    async function editCity(index) {
+      if (!currentUser) return alert('請先登入管理員！');
+      const target = visitedCities[index];
+      const newName = prompt('Edit City Name:', target.city_name);
+      if (!newName) return;
+
+      if (supabaseClient && target.id) {
+        const { error } = await supabaseClient.from('visited_cities').update({ city_name: newName }).eq('id', target.id);
+        if (error) return alert('UPDATE ERROR: ' + error.message);
+      }
+
+      target.city_name = newName;
+      renderCityManageList();
+    }
 
     async function fetchVisitedCities() {
       if (!supabaseClient) return;
@@ -287,6 +421,5 @@
       } catch(e){}
     }
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 </body>
 </html>
