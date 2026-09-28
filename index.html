@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GLYPH // TRAVEL MAP</title>
+  
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- NDOT / Monospace Style Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-color: #000000;
+      --panel-bg: rgba(18, 18, 18, 0.85);
+      --glyph-white: #ffffff;
+      --glyph-red: #D71921;
+      --border-color: #333333;
+      --text-muted: #888888;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Space Mono', monospace;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--glyph-white);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #map {
+      height: 100vh;
+      width: 100vw;
+      background: #000000;
+    }
+
+    /* 地圖暗黑濾鏡 */
+    .leaflet-tile-container img {
+      filter: brightness(0.4) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
+    }
+
+    /* Nothing Style Dashboard Panel */
+    .dashboard {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      backdrop-filter: blur(10px);
+      padding: 20px;
+      border-radius: 4px;
+      width: 320px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+    }
+
+    .brand-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px dashed var(--border-color);
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+
+    .brand-title {
+      font-size: 14px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .red-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--glyph-red);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--glyph-red);
+    }
+
+    .stat-box {
+      margin-top: 10px;
+    }
+
+    .stat-number {
+      font-size: 32px;
+      font-weight: bold;
+      letter-spacing: -1px;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+    }
+
+    /* 自訂 Glyph 光斑 Marker 樣式 */
+    .glyph-marker {
+      background: var(--glyph-white);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--glyph-white), 0 0 20px var(--glyph-white), 0 0 30px var(--glyph-white);
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 8px var(--glyph-white), 0 0 15px var(--glyph-white);
+      }
+      50% {
+        box-shadow: 0 0 15px var(--glyph-white), 0 0 30px var(--glyph-white), 0 0 40px var(--glyph-white);
+      }
+      100% {
+        box-shadow: 0 0 8px var(--glyph-white), 0 0 15px var(--glyph-white);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard">
+    <div class="brand-header">
+      <span class="brand-title">GLYPH // MAP (01)</span>
+      <div class="red-dot"></div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number" id="city-count">--</div>
+      <div class="stat-label">CITIES LIGHT UP</div>
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <script>
+    // 1. 初始化 Supabase
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // 2. 初始化 Leaflet 地圖 (極簡風格 TileLayer)
+    const map = L.map('map', {
+      zoomControl: false,
+      attributionControl: false
+    }).setView([20, 0], 2.5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+    }).addTo(map);
+
+    // 3. 從 Supabase 讀取數據並渲染 Glow Marker
+    async function fetchVisitedCities() {
+      const { data, error } = await supabase
+        .from('visited_cities')
+        .select('*')
+        .eq('is_visited', true);
+
+      if (error) {
+        console.error('Error fetching data:', error);
+        return;
+      }
+
+      document.getElementById('city-count').innerText = data.length.toString().padStart(2, '0');
+
+      data.forEach(city => {
+        // 創建 Glyph 發光圖標
+        const glyphIcon = L.divIcon({
+          className: 'glyph-marker',
+          iconSize: [10, 10],
+          iconAnchor: [5, 5]
+        });
+
+        const marker = L.marker([city.lat, city.lng], { icon: glyphIcon }).addTo(map);
+        
+        // Popup 樣式
+        marker.bindPopup(`
+          <div style="background:#000; color:#fff; padding:5px; font-family:'Space Mono'; font-size:12px;">
+            > ${city.city_name.toUpperCase()}, ${city.country.toUpperCase()}
+          </div>
+        `, { className: 'custom-popup' });
+      });
+    }
+
+    fetchVisitedCities();
+  </script>
+</body>
+</html>
