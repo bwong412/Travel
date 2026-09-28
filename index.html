@@ -5,45 +5,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GLYPH // TRAVEL MAP</title>
   
-  <!-- Leaflet CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  
-  <!-- Supabase JS Client -->
+  <!-- D3 & Supabase (極輕量 CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- NDOT Monospace Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
     :root {
       --bg-color: #000000;
-      --panel-bg: rgba(18, 18, 18, 0.85);
+      --panel-bg: rgba(18, 18, 18, 0.9);
       --glyph-white: #ffffff;
       --glyph-red: #D71921;
-      --border-color: #333333;
-      --text-muted: #888888;
+      --border-color: #262626;
+      --text-muted: #666666;
     }
 
-    html, body {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      background-color: var(--bg-color);
-      color: var(--glyph-white);
-      font-family: 'Space Mono', monospace;
-      overflow: hidden;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Mono', monospace; }
+    html, body { width: 100%; height: 100%; background-color: var(--bg-color); color: var(--glyph-white); overflow: hidden; }
 
-    #map {
+    /* SVG Canvas 地圖容器 */
+    #map-container {
       width: 100vw;
       height: 100vh;
-      background: #111;
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000000;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      background: #000000;
+    }
+
+    /* 陸地與邊界線條 - Nothing Style */
+    .country {
+      fill: #0a0a0a;
+      stroke: #222222;
+      stroke-width: 0.8px;
+      transition: fill 0.2s ease;
+    }
+    .country:hover {
+      fill: #141414;
+      stroke: #444444;
     }
 
     /* Dashboard UI */
@@ -51,62 +59,58 @@
       position: absolute; top: 20px; left: 20px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
       backdrop-filter: blur(10px); padding: 20px; border-radius: 4px; width: 260px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.8);
-      pointer-events: auto;
+      box-shadow: 0 0 30px rgba(0,0,0,0.9);
     }
     .brand-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px; margin-bottom: 15px; }
     .brand-title { font-size: 12px; letter-spacing: 2px; }
-    .red-dot { width: 8px; height: 8px; background-color: var(--glyph-red); border-radius: 50%; box-shadow: 0 0 8px var(--glyph-red); }
-    .stat-number { font-size: 32px; font-weight: bold; }
-    .stat-label { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
+    .red-dot { width: 8px; height: 8px; background-color: var(--glyph-red); border-radius: 50%; box-shadow: 0 0 10px var(--glyph-red); }
+    .stat-number { font-size: 36px; font-weight: bold; }
+    .stat-label { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; margin-top: 4px; }
 
     /* Admin Button */
     .admin-btn {
       position: absolute; top: 20px; right: 20px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
-      color: var(--glyph-white); padding: 8px 12px; font-size: 11px;
+      color: var(--glyph-white); padding: 10px 16px; font-size: 11px;
       cursor: pointer; backdrop-filter: blur(10px); border-radius: 4px;
-      letter-spacing: 1px;
-      font-family: 'Space Mono', monospace;
+      letter-spacing: 1.5px; transition: all 0.2s;
     }
-    .admin-btn:hover { border-color: var(--glyph-white); }
+    .admin-btn:hover { border-color: var(--glyph-white); background: #1f1f1f; }
     .admin-btn.active { border-color: var(--glyph-red); color: var(--glyph-red); }
 
     /* Auth Modal */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 2000;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 2000;
       justify-content: center; align-items: center;
     }
     .modal {
-      background: #0a0a0a; border: 1px solid var(--border-color);
-      padding: 30px; width: 320px; border-radius: 4px;
+      background: #0d0d0d; border: 1px solid #333;
+      padding: 30px; width: 320px; border-radius: 4px; box-shadow: 0 0 40px rgba(0,0,0,0.9);
     }
-    .modal h3 { font-size: 13px; margin-bottom: 20px; letter-spacing: 1px; }
+    .modal h3 { font-size: 13px; margin-bottom: 20px; letter-spacing: 1px; color: #fff; }
     .modal input {
-      width: 100%; background: #151515; border: 1px solid var(--border-color);
-      color: #fff; padding: 10px; margin-bottom: 15px; font-size: 12px;
-      font-family: 'Space Mono', monospace;
+      width: 100%; background: #161616; border: 1px solid #333;
+      color: #fff; padding: 12px; margin-bottom: 15px; font-size: 12px;
     }
     .modal input:focus { outline: none; border-color: var(--glyph-white); }
     .modal-actions { display: flex; justify-content: space-between; gap: 10px; }
     .btn {
-      flex: 1; padding: 10px; background: #fff; color: #000; border: none;
-      font-weight: bold; cursor: pointer; font-size: 11px;
-      font-family: 'Space Mono', monospace;
+      flex: 1; padding: 12px; background: #fff; color: #000; border: none;
+      font-weight: bold; cursor: pointer; font-size: 11px; letter-spacing: 1px;
     }
-    .btn-cancel { background: transparent; color: #888; border: 1px solid var(--border-color); }
+    .btn-cancel { background: transparent; color: #888; border: 1px solid #333; }
 
-    /* Glyph Marker Glow Effect */
-    .glyph-marker {
-      background: #ffffff;
-      border-radius: 50%;
-      box-shadow: 0 0 8px #ffffff, 0 0 15px #ffffff, 0 0 25px rgba(255,255,255,0.8);
-      animation: pulse 2.5s infinite ease-in-out;
+    /* LED Glow City Point */
+    .glyph-point {
+      fill: #ffffff;
+      filter: drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 12px #ffffff);
+      animation: pulse-glow 2s infinite ease-in-out;
+      cursor: pointer;
     }
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 8px #ffffff, 0 0 15px #ffffff; transform: scale(1); }
-      50% { box-shadow: 0 0 15px #ffffff, 0 0 30px #ffffff, 0 0 40px #ffffff; transform: scale(1.2); }
+    @keyframes pulse-glow {
+      0%, 100% { filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 8px #ffffff); opacity: 0.8; }
+      50% { filter: drop-shadow(0 0 10px #ffffff) drop-shadow(0 0 20px #ffffff); opacity: 1; }
     }
   </style>
 </head>
@@ -122,8 +126,8 @@
     <div class="stat-label">CITIES UNLOCKED</div>
   </div>
 
-  <!-- Admin Button -->
-  <button class="admin-btn" id="admin-btn" onclick="openLoginModal()">[ LOGIN ]</button>
+  <!-- Admin Toggle Button -->
+  <button class="admin-btn" id="admin-btn" onclick="toggleLoginModal()">[ LOGIN ]</button>
 
   <!-- Login Modal -->
   <div class="modal-overlay" id="login-modal">
@@ -132,77 +136,37 @@
       <input type="email" id="login-email" placeholder="EMAIL">
       <input type="password" id="login-password" placeholder="PASSWORD">
       <div class="modal-actions">
-        <button class="btn btn-cancel" onclick="closeLoginModal()">CANCEL</button>
+        <button class="btn btn-cancel" onclick="toggleLoginModal()">CANCEL</button>
         <button class="btn" onclick="handleLogin()">LOGIN</button>
       </div>
     </div>
   </div>
 
-  <!-- Map Container -->
-  <div id="map"></div>
+  <!-- SVG Map Container -->
+  <div id="map-container">
+    <svg id="svg-map"></svg>
+  </div>
 
   <script>
-    // 1. Supabase Setup (Safe Try-Catch Block)
+    // 1. Supabase Setup
     const SUPABASE_URL = 'https://pmrhldqgabasvohsupbn.supabase.co';
-    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // 👈 記得喺 Supabase API Keys 複製 Key 貼過嚟
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // 👈 貼上你喺 Supabase API Keys 複製到的 Key
 
     let supabase = null;
-    try {
-      if (SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY' && SUPABASE_ANON_KEY.length > 10) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      }
-    } catch (err) {
-      console.warn("Supabase Config Pending:", err);
+    if (SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
 
     let currentUser = null;
 
-    // 2. 地圖初始化（保證100%載入，不崩潰）
-    const map = L.map('map', { 
-      zoomControl: false, 
-      attributionControl: false 
-    }).setView([20, 0], 2.5);
-
-    // CartoDB Dark Matter 瓦片
-    L.tileLayer('https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      subdomains: 'abcd'
-    }).addTo(map);
-
-    window.addEventListener('resize', () => map.invalidateSize());
-    setTimeout(() => map.invalidateSize(), 500);
-
-    // 3. Auth UI 邏輯
-    async function checkAuthStatus() {
-      if (!supabase) return;
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        updateAdminUI(session ? session.user : null);
-      } catch(e) {}
+    // Modal 開關邏輯 (原生 JavaScript，不依賴任何第三方庫)
+    function toggleLoginModal() {
+      const modal = document.getElementById('login-modal');
+      modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
     }
-
-    function updateAdminUI(user) {
-      currentUser = user;
-      const btn = document.getElementById('admin-btn');
-      if (currentUser) {
-        btn.innerText = '[ ADMIN ON ]';
-        btn.classList.add('active');
-        btn.onclick = handleLogout;
-      } else {
-        btn.innerText = '[ LOGIN ]';
-        btn.classList.remove('active');
-        btn.onclick = openLoginModal;
-      }
-    }
-
-    function openLoginModal() { document.getElementById('login-modal').style.display = 'flex'; }
-    function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
 
     async function handleLogin() {
-      if (!supabase) {
-        alert('👉 提示：你仲未喺 index.html 第 124 行填入 Supabase ANON Key！');
-        return;
-      }
+      if (!supabase) return alert('請先喺 index.html 第 129 行貼上 Supabase Key！');
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
 
@@ -210,55 +174,59 @@
       if (error) {
         alert('LOGIN FAILED: ' + error.message);
       } else {
-        updateAdminUI(data.user);
-        closeLoginModal();
+        currentUser = data.user;
+        document.getElementById('admin-btn').innerText = '[ ADMIN ON ]';
+        document.getElementById('admin-btn').classList.add('active');
+        toggleLoginModal();
         alert('WELCOME BACK, ADMIN.');
       }
     }
 
-    async function handleLogout() {
-      if (confirm('LOGOUT ADMIN?')) {
-        if (supabase) await supabase.auth.signOut();
-        updateAdminUI(null);
-      }
-    }
+    // 2. D3 原生 SVG 極速地圖渲染
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
-    // 4. 讀取與標記城市
-    async function fetchVisitedCities() {
-      if (!supabase) return;
-      try {
-        const { data, error } = await supabase.from('visited_cities').select('*');
-        if (error || !data) return;
+    const svg = d3.select("#svg-map")
+      .attr("viewBox", [0, 0, width, height]);
 
-        document.getElementById('city-count').innerText = data.length.toString().padStart(2, '0');
-        data.forEach(city => addGlyphMarker(city.lat, city.lng, city.city_name, city.country));
-      } catch(e){}
-    }
+    const projection = d3.geoMercator()
+      .scale(width / 6.5)
+      .translate([width / 2, height / 1.5]);
 
-    function addGlyphMarker(lat, lng, cityName, country) {
-      const glyphIcon = L.divIcon({ className: 'glyph-marker', iconSize: [10, 10], iconAnchor: [5, 5] });
-      const marker = L.marker([lat, lng], { icon: glyphIcon }).addTo(map);
-      marker.bindPopup(`
-        <div style="background:#000; color:#fff; padding:6px; font-family:'Space Mono'; font-size:11px; border:1px solid #333;">
-          > ${(cityName || '').toUpperCase()}, ${(country || '').toUpperCase()}
-        </div>
-      `);
-    }
+    const path = d3.geoPath().projection(projection);
+    const g = svg.append("g");
 
-    // 5. 點擊地圖互動
-    map.on('click', async function(e) {
-      if (!currentUser && supabase) {
-        alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號！');
+    // 載入極輕量的世界地圖 TopoJSON (僅幾十 KB，載入速度極快)
+    d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(data => {
+      const countries = topojson.feature(data, data.objects.countries);
+
+      g.selectAll("path")
+        .data(countries.features)
+        .enter().append("path")
+        .attr("class", "country")
+        .attr("d", path);
+
+      // 地圖載入完成後讀取去過的城市數據
+      fetchVisitedCities();
+    });
+
+    // 3. 點擊地圖地點新增城市
+    svg.on("click", async function(event) {
+      if (!currentUser) {
+        alert("請先點擊右上角 [ LOGIN ] 登入管理員帳號！");
         return;
       }
 
-      const { lat, lng } = e.latlng;
+      const coords = projection.invert(d3.pointer(event));
+      const lng = coords[0];
+      const lat = coords[1];
+
       const cityName = prompt(`[ADD CITY] Enter City Name at (${lat.toFixed(2)}, ${lng.toFixed(2)}):`);
       if (!cityName) return;
 
       const country = prompt(`[ADD CITY] Country Name:`) || '';
 
-      if (supabase && currentUser) {
+      if (supabase) {
         const { error } = await supabase.from('visited_cities').insert([
           {
             city_code: cityName.substring(0,3).toUpperCase() + Math.floor(Math.random() * 100),
@@ -276,14 +244,39 @@
         }
       }
 
-      // 即時在地圖上亮起 LED Glow 標記
-      addGlyphMarker(lat, lng, cityName, country);
-      const countElem = document.getElementById('city-count');
-      countElem.innerText = (parseInt(countElem.innerText) + 1).toString().padStart(2, '0');
+      addGlyphPoint(lat, lng, cityName, country);
+      updateCount(1);
     });
 
-    checkAuthStatus();
-    fetchVisitedCities();
+    function addGlyphPoint(lat, lng, cityName, country) {
+      const pos = projection([lng, lat]);
+      if (!pos) return;
+
+      g.append("circle")
+        .attr("cx", pos[0])
+        .attr("cy", pos[1])
+        .attr("r", 4)
+        .attr("class", "glyph-point")
+        .append("title")
+        .text(`${cityName.toUpperCase()}, ${country.toUpperCase()}`);
+    }
+
+    function updateCount(addVal) {
+      const countElem = document.getElementById('city-count');
+      const current = parseInt(countElem.innerText);
+      countElem.innerText = (current + addVal).toString().padStart(2, '0');
+    }
+
+    async function fetchVisitedCities() {
+      if (!supabase) return;
+      try {
+        const { data, error } = await supabase.from('visited_cities').select('*');
+        if (error || !data) return;
+
+        document.getElementById('city-count').innerText = data.length.toString().padStart(2, '0');
+        data.forEach(city => addGlyphPoint(city.lat, city.lng, city.city_name, city.country));
+      } catch(e){}
+    }
   </script>
 </body>
 </html>
