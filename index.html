@@ -384,7 +384,9 @@
     let visitedCities = [];
     let currentFilter = 'ALL';
 
+    /* 全球國家高畫質地標壁紙庫（已補齊 CANADA 加拿大班夫雪山湖泊） */
     const STATIC_LANDMARKS = {
+      'CANADA': 'https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=800&auto=format&fit=crop', // 加拿大班夫國家公園 / Peyto Lake
       'USA': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
       'UNITED STATES': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
       'FIJI': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&auto=format&fit=crop',
@@ -410,8 +412,9 @@
       'NEW ZEALAND': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&auto=format&fit=crop'
     };
 
+    /* 補齊 CANADA 加拿大國旗代碼 ca */
     const COUNTRY_FLAG_CODES = {
-      'JAPAN': 'jp', 'NEW ZEALAND': 'nz', 'CHINA': 'cn', 'USA': 'us', 'UNITED STATES': 'us',
+      'CANADA': 'ca', 'JAPAN': 'jp', 'NEW ZEALAND': 'nz', 'CHINA': 'cn', 'USA': 'us', 'UNITED STATES': 'us',
       'UNITED KINGDOM': 'gb', 'UK': 'gb', 'FRANCE': 'fr', 'GERMANY': 'de', 'ITALY': 'it',
       'AUSTRALIA': 'au', 'MACAU': 'mo', 'HONG KONG': 'hk', 'TAIWAN': 'tw', 'SINGAPORE': 'sg',
       'SOUTH KOREA': 'kr', 'KOREA': 'kr', 'THAILAND': 'th', 'VIETNAM': 'vn', 'MALAYSIA': 'my',
@@ -420,7 +423,7 @@
     };
 
     const COUNTRY_TARGET_CITIES = {
-      'JAPAN': 20, 'CHINA': 20, 'USA': 20, 'UNITED STATES': 20, 'AUSTRALIA': 10,
+      'CANADA': 15, 'JAPAN': 20, 'CHINA': 20, 'USA': 20, 'UNITED STATES': 20, 'AUSTRALIA': 10,
       'NEW ZEALAND': 10, 'TAIWAN': 10, 'UNITED KINGDOM': 10, 'GERMANY': 10,
       'ITALY': 10, 'FRANCE': 10, 'MALAYSIA': 8, 'THAILAND': 8, 'NORWAY': 8,
       'ICELAND': 6, 'SWITZERLAND': 6, 'FINLAND': 6, 'NETHERLANDS': 5,
@@ -700,9 +703,9 @@
         if (hoveredCountryFeature) {
           ctx.beginPath();
           pathGenerator(hoveredCountryFeature);
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.18)'; // 高級淡白色填滿
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
           ctx.fill();
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'; // 白色細線邊框
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
           ctx.lineWidth = 1.2 / zoomLevel;
           ctx.stroke();
         }
