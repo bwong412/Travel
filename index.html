@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Travel Map</title>
   
-  <!-- Supabase & D3 Libraries -->
+  <!-- Supabase, D3 & TopoJSON Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-array@3"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-geo@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 
   <!-- Space Mono Font -->
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -22,8 +23,8 @@
       --border-color: rgba(255, 255, 255, 0.15);
       --text-muted: #888888;
       --canvas-bg: #000000;
-      --land-bg: #0a0a0a;
-      --stroke-color: #222222;
+      --land-bg: #0d0d0d;
+      --stroke-color: #262626;
       --grid-color: #181818;
     }
 
@@ -35,10 +36,10 @@
       --glyph-red: #c83226;
       --border-color: rgba(0, 0, 0, 0.15);
       --text-muted: #7a736c;
-      --canvas-bg: #e6dfd5;
-      --land-bg: #ded6c9;
-      --stroke-color: #c2b5a3;
-      --grid-color: #d1c7b8;
+      --canvas-bg: #e8e2d8;
+      --land-bg: #d8cfc0;
+      --stroke-color: #b5a895;
+      --grid-color: #cbc1b1;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Mono', monospace, -apple-system, "PingFang HK", "Microsoft JhengHei"; user-select: none; }
@@ -173,10 +174,10 @@
     .flip-card-container.flipped .flip-card-inner { transform: rotateY(180deg); }
     .deep-card-front, .deep-card-back { position: absolute; inset: 0; width: 100%; height: 100%; -webkit-backface-visibility: hidden !important; backface-visibility: hidden !important; border-radius: 24px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 15px 35px rgba(0,0,0,0.3); }
     .deep-card-front { background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; z-index: 2; }
-    .deep-card-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.95) 100%); z-index: 1; }
+    .deep-card-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.95) 100%); z-index: 1; }
     .deep-card-content { position: relative; z-index: 2; }
     .deep-card-title { font-size: 22px; font-weight: 700; letter-spacing: 1px; color: #ffffff; margin-bottom: 6px; }
-    .deep-card-cities { font-size: 11px; color: #b0b0b0; line-height: 1.5; margin-bottom: 14px; min-height: 33px; }
+    .deep-card-cities { font-size: 11px; color: #d0d0d0; line-height: 1.5; margin-bottom: 14px; min-height: 33px; }
     .deep-card-back { transform: rotateY(180deg); background-color: var(--panel-bg) !important; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 24px; z-index: 1; }
     .flag-large-img { width: 150px; height: 100px; object-fit: cover; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.3); border: 1px solid var(--border-color); margin-bottom: 16px; }
     .flag-country-name { font-size: 18px; font-weight: bold; letter-spacing: 2px; color: var(--glyph-white); }
@@ -237,7 +238,7 @@
     </div>
   </div>
 
-  <!-- Settings Modal (設定按鈕內容) -->
+  <!-- Settings Modal -->
   <div class="modal-overlay" id="settings-modal">
     <div class="modal">
       <h3>MAP & VISUAL SETTINGS</h3>
@@ -281,31 +282,6 @@
     </div>
   </div>
 
-  <!-- Add City Modal -->
-  <div class="modal-overlay" id="add-city-modal">
-    <div class="modal">
-      <h3>ADD NEW UNLOCKED CITY</h3>
-      <label>COORDINATES (LAT, LNG)</label>
-      <input type="text" id="add-coords" placeholder="e.g. 35.67, 139.65">
-      <label>CITY NAME</label>
-      <input type="text" id="add-city-name" placeholder="e.g. TOKYO">
-      <label>COUNTRY NAME</label>
-      <input type="text" id="add-country-name" placeholder="e.g. JAPAN">
-      <label>REGION / CONTINENT</label>
-      <select id="add-region">
-        <option value="ASIA">ASIA (赤紅光)</option>
-        <option value="EUROPE">EUROPE (冰藍光)</option>
-        <option value="AMERICAS">AMERICAS (純白光)</option>
-        <option value="AFRICA">AFRICA (琥珀黃)</option>
-        <option value="OCEANIA">OCEANIA (翡翠綠)</option>
-      </select>
-      <div class="modal-actions">
-        <button class="btn btn-cancel" onclick="playClickSound(); closeAddCityModal()">CANCEL</button>
-        <button class="btn" onclick="playClickSound(); confirmAddCity()">SAVE CITY</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Manage Modal -->
   <div class="modal-overlay" id="manage-modal">
     <div class="modal">
@@ -325,28 +301,20 @@
   <canvas id="world-canvas"></canvas>
 
   <script>
-    /* ========================================================
-       🔒 代碼防護與防檢查模組 (Protection Engine)
-       ======================================================== */
-    // 1. 禁用右鍵選單
+    /* 防檢查模組 */
     document.addEventListener('contextmenu', e => e.preventDefault());
-
-    // 2. 禁用快捷鍵 (F12, Ctrl+Shift+I, Cmd+Opt+I, Ctrl+U 等)
     document.addEventListener('keydown', e => {
       if (
         e.key === 'F12' ||
-        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) ||
-        (e.metaKey && e.altKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) ||
-        (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.key === 'S' || e.key === 's')) ||
-        (e.metaKey && (e.key === 'U' || e.key === 'u' || e.key === 'S' || e.key === 's'))
+        (e.ctrlKey && e.shiftKey && ['I','i','J','j','C','c'].includes(e.key)) ||
+        (e.metaKey && e.altKey && ['I','i','J','j','C','c'].includes(e.key)) ||
+        (e.ctrlKey && ['U','u','S','s'].includes(e.key)) ||
+        (e.metaKey && ['U','u','S','s'].includes(e.key))
       ) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
+        e.preventDefault(); e.stopPropagation(); return false;
       }
     });
 
-    // 3. DevTools 開啟定時 Trap (防止開啟檢查)
     setInterval(() => {
       const startTime = performance.now();
       debugger;
@@ -356,9 +324,7 @@
       }
     }, 1000);
 
-    /* ========================================================
-       🌐 核心系統與 Supabase 設定
-       ======================================================== */
+    /* Supabase 與基礎配置 */
     const SUPABASE_URL = 'https://pmrhldqgabasvohsupbn.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_R9BjF5Dl_puhHVzvPwd7sA_vwRJwO_E';
 
@@ -367,7 +333,6 @@
       if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     } catch(e){}
 
-    // 音效反饋系統
     let audioCtx = null;
     function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
     function playHoverSound() {
@@ -400,16 +365,36 @@
 
     const TOTAL_WORLD_COUNTRIES = 195;
 
+    const STATIC_LANDMARKS = {
+      'CHINA': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800&auto=format&fit=crop',
+      'JAPAN': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&auto=format&fit=crop',
+      'NEW ZEALAND': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&auto=format&fit=crop',
+      'THAILAND': 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=800&auto=format&fit=crop',
+      'TAIWAN': 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=800&auto=format&fit=crop',
+      'USA': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
+      'UNITED STATES': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
+      'FIJI': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&auto=format&fit=crop',
+      'AUSTRALIA': 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800&auto=format&fit=crop'
+    };
+
+    const COUNTRY_FLAG_CODES = {
+      'CHINA': 'cn', 'JAPAN': 'jp', 'NEW ZEALAND': 'nz', 'THAILAND': 'th', 'TAIWAN': 'tw',
+      'USA': 'us', 'UNITED STATES': 'us', 'FIJI': 'fj', 'AUSTRALIA': 'au', 'MACAU': 'mo', 'HONG KONG': 'hk'
+    };
+
     const COUNTRY_CN_NAME = {
       'JAPAN': '日本', 'CHINA': '中國', 'TAIWAN': '台灣', 'HONG KONG': '香港', 'MACAU': '澳門',
       'SOUTH KOREA': '韓國', 'KOREA': '韓國', 'THAILAND': '泰國', 'VIETNAM': '越南', 'MALAYSIA': '馬來西亞', 'SINGAPORE': '新加坡',
-      'USA': '美國', 'UNITED STATES': '美國', 'CANADA': '加拿大', 'AUSTRALIA': '澳洲', 'NEW ZEALAND': '紐西蘭',
-      'SOUTH AFRICA': '南非', 'NAMIBIA': '納米比亞', 'BOTSWANA': '波札那', 'ZIMBABWE': '辛巴威',
-      'UNITED KINGDOM': '英國', 'FRANCE': '法國', 'GERMANY': '德國', 'ITALY': '義大利', 'SWITZERLAND': '瑞士', 'NORWAY': '挪威',
-      'ICELAND': '冰島', 'FINLAND': '芬蘭', 'NETHERLANDS': '荷蘭', 'MALDIVES': '馬爾地夫', '梵蒂岡': '梵蒂岡'
+      'USA': '美國', 'UNITED STATES': '美國', 'CANADA': '加拿大', 'AUSTRALIA': '澳洲', 'NEW ZEALAND': '紐西蘭'
     };
 
     function cleanCountryName(str) { return str ? str.toString().toUpperCase().replace(/\s+/g, ' ').trim() : 'UNKNOWN'; }
+
+    function getCountryImageUrl(countryName) {
+      const cleaned = cleanCountryName(countryName);
+      if (STATIC_LANDMARKS[cleaned]) return STATIC_LANDMARKS[cleaned];
+      return `https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&auto=format&fit=crop`;
+    }
 
     function updateWorldProgress() {
       const visitedCountrySet = new Set(visitedCities.map(c => cleanCountryName(c.country)));
@@ -419,14 +404,12 @@
       document.getElementById('world-progress-fill').style.width = `${Math.min(100, percent)}%`;
     }
 
-    // Modal 控制
     function openSettingsModal() { document.getElementById('settings-modal').style.display = 'flex'; }
     function closeSettingsModal() { document.getElementById('settings-modal').style.display = 'none'; }
     function openLoginModal() { document.getElementById('login-modal').style.display = 'flex'; }
     function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
     function openManageModal() { renderCityManageList(); document.getElementById('manage-modal').style.display = 'flex'; }
     function closeManageModal() { document.getElementById('manage-modal').style.display = 'none'; }
-    function closeAddCityModal() { document.getElementById('add-city-modal').style.display = 'none'; }
 
     function applySettingMode(mode) {
       mapMode = mode;
@@ -457,7 +440,6 @@
       document.getElementById('opt-sun-on').classList.toggle('active', enable);
     }
 
-    /* 計算當前 UTC 時間之太陽直射座標 (Solar Position) */
     function getSolarPosition() {
       const now = new Date();
       const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
@@ -467,7 +449,6 @@
       return [sunLng, declination];
     }
 
-    // Canvas Engine
     const canvas = document.getElementById('world-canvas');
     const ctx = canvas.getContext('2d');
 
@@ -579,7 +560,7 @@
       if (mapMode === '3D') {
         const globeRadius = projection.scale(); const center = projection.translate();
         ctx.beginPath(); ctx.arc(center[0], center[1], globeRadius + 1.5, 0, Math.PI * 2);
-        ctx.strokeStyle = currentTheme === 'sand' ? 'rgba(194, 181, 163, 0.6)' : 'rgba(255, 255, 255, 0.25)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = currentTheme === 'sand' ? 'rgba(181, 168, 149, 0.6)' : 'rgba(255, 255, 255, 0.25)'; ctx.lineWidth = 1; ctx.stroke();
         ctx.beginPath(); ctx.arc(center[0], center[1], globeRadius, 0, Math.PI * 2);
         ctx.fillStyle = landBg; ctx.fill();
       }
@@ -594,23 +575,22 @@
           const countryName = (feature.properties.name || '').toUpperCase();
           if (visitedCountrySet.has(countryName)) {
             ctx.beginPath(); pathGenerator(feature);
-            ctx.fillStyle = currentTheme === 'sand' ? 'rgba(200, 50, 38, 0.12)' : 'rgba(255, 255, 255, 0.05)'; ctx.fill();
-            ctx.strokeStyle = currentTheme === 'sand' ? 'rgba(200, 50, 38, 0.4)' : 'rgba(255, 255, 255, 0.25)'; ctx.stroke();
+            ctx.fillStyle = currentTheme === 'sand' ? 'rgba(200, 50, 38, 0.15)' : 'rgba(255, 255, 255, 0.08)'; ctx.fill();
+            ctx.strokeStyle = currentTheme === 'sand' ? 'rgba(200, 50, 38, 0.5)' : 'rgba(255, 255, 255, 0.3)'; ctx.stroke();
           }
         });
 
-        // 實時日照光暈繪製 (Real-time Sunlight Overlay)
         if (isSunlightOn) {
           const sunPos = getSolarPosition();
           const sunCircle = d3.geoCircle().center(sunPos).radius(89)();
           ctx.beginPath(); pathGenerator(sunCircle);
-          ctx.fillStyle = currentTheme === 'sand' ? 'rgba(255, 220, 100, 0.18)' : 'rgba(255, 255, 200, 0.12)';
+          ctx.fillStyle = currentTheme === 'sand' ? 'rgba(255, 220, 100, 0.2)' : 'rgba(255, 255, 200, 0.12)';
           ctx.fill();
         }
 
         if (hoveredCountryFeature) {
           ctx.beginPath(); pathGenerator(hoveredCountryFeature);
-          ctx.fillStyle = currentTheme === 'sand' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.22)'; ctx.fill();
+          ctx.fillStyle = currentTheme === 'sand' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.22)'; ctx.fill();
           ctx.strokeStyle = currentTheme === 'sand' ? '#1a1714' : '#ffffff'; ctx.lineWidth = 1.2; ctx.stroke();
         }
       }
@@ -680,12 +660,16 @@
 
       Object.keys(grouped).forEach(country => {
         const citiesList = grouped[country].join(', ');
+        const bgImg = getCountryImageUrl(country);
+        const flagCode = COUNTRY_FLAG_CODES[country] || 'un';
+        const flagUrl = `https://flagcdn.com/w160/${flagCode}.png`;
+
         const card = document.createElement('div');
         card.className = 'flip-card-container';
         card.onclick = function() { playClickSound(); this.classList.toggle('flipped'); };
         card.innerHTML = `
           <div class="flip-card-inner">
-            <div class="deep-card-front" style="background-image: url('https://source.unsplash.com/800x600/?${country},scenery');">
+            <div class="deep-card-front" style="background-image: url('${bgImg}');">
               <div class="deep-card-overlay"></div>
               <div class="deep-card-content">
                 <div class="deep-card-title">#${country}</div>
@@ -693,6 +677,7 @@
               </div>
             </div>
             <div class="deep-card-back">
+              <img class="flag-large-img" src="${flagUrl}" alt="${country} flag">
               <div class="flag-country-name">#${country}</div>
             </div>
           </div>
