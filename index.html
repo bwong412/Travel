@@ -28,6 +28,7 @@
       --grid-color: #181818;
     }
 
+    /* 沙白黃金主題變數 */
     body.theme-sand {
       --bg-color: #f4efea;
       --panel-bg: rgba(244, 239, 234, 0.94);
@@ -39,6 +40,20 @@
       --land-bg: #d8cfc0;
       --stroke-color: #b5a895;
       --grid-color: #cbc1b1;
+    }
+
+    /* 深海凍土 (Spec X UI) 主題變數 */
+    body.theme-specx {
+      --bg-color: #030813;
+      --panel-bg: rgba(6, 16, 32, 0.92);
+      --glyph-white: #e1ebf5;
+      --glyph-red: #38bdf8;
+      --border-color: rgba(56, 189, 248, 0.25);
+      --text-muted: #64748b;
+      --canvas-bg: #020611;
+      --land-bg: #bcd0e5;
+      --stroke-color: #475569;
+      --grid-color: #0f172a;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Mono', monospace, -apple-system, "PingFang HK", "Microsoft JhengHei"; user-select: none; }
@@ -64,7 +79,7 @@
       position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
       backdrop-filter: blur(16px); padding: 4px 8px; border-radius: 30px;
-      display: flex; gap: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-width: 90vw;
+      display: flex; gap: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-width: 90vw;
     }
     .nav-btn {
       background: transparent; border: none; color: var(--text-muted); font-size: 10px;
@@ -101,7 +116,7 @@
     .stat-number { font-size: 28px; font-weight: bold; }
     .stat-label { font-size: 9px; color: var(--text-muted); letter-spacing: 1px; }
 
-    /* 分類 Filter 按鈕 */
+    /* Filter Chips */
     .filter-container { margin-top: 12px; border-top: 1px dashed var(--border-color); padding-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
     .filter-chip {
       background: rgba(0,0,0,0.05); border: 1px solid var(--border-color); color: var(--text-muted);
@@ -110,7 +125,7 @@
     }
     .filter-chip:hover, .filter-chip.active { background: var(--glyph-white); color: var(--bg-color); font-weight: bold; border-color: var(--glyph-white); }
 
-    /* 左側慢慢向下拉出來的 Filter 抽屜選單 (Pack Drawer) */
+    /* 左側 Pack Drawer 抽屜 */
     .pack-drawer {
       display: none; position: absolute; top: 250px; left: 15px; z-index: 999;
       background: var(--panel-bg); border: 1px solid var(--border-color);
@@ -133,7 +148,7 @@
     }
     .manage-btn:hover { border-color: var(--glyph-white); color: var(--glyph-white); }
 
-    /* 主頁底部高級能量探索進度條 */
+    /* 底部能量進度條 */
     .bottom-world-progress {
       position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 1000;
       width: clamp(320px, 42vw, 520px); background: var(--panel-bg);
@@ -169,9 +184,9 @@
       color: var(--glyph-white); padding: 8px; margin-bottom: 8px; font-size: 11px;
       font-family: 'Space Mono', monospace; border-radius: 4px; user-select: text;
     }
-    .setting-group { display: flex; gap: 6px; margin-bottom: 12px; }
+    .setting-group { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
     .setting-opt {
-      flex: 1; padding: 8px; border: 1px solid var(--border-color); background: transparent;
+      flex: 1; min-width: 90px; padding: 8px; border: 1px solid var(--border-color); background: transparent;
       color: var(--text-muted); font-size: 10px; font-weight: bold; cursor: pointer; border-radius: 4px; text-align: center;
       transition: all 0.2s;
     }
@@ -189,7 +204,7 @@
     .flip-card-container.flipped .flip-card-inner { transform: rotateY(180deg); }
     .deep-card-front, .deep-card-back { position: absolute; inset: 0; width: 100%; height: 100%; -webkit-backface-visibility: hidden !important; backface-visibility: hidden !important; border-radius: 24px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 15px 35px rgba(0,0,0,0.3); }
     .deep-card-front { background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; z-index: 2; }
-    .deep-card-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.95) 100%); z-index: 1; }
+    .deep-card-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.65) 45%, rgba(0,0,0,0.95) 100%); z-index: 1; }
     .deep-card-content { position: relative; z-index: 2; }
     .deep-card-title { font-size: 22px; font-weight: 700; letter-spacing: 1px; color: #ffffff; margin-bottom: 6px; }
     .deep-card-cities { font-size: 11px; color: #d0d0d0; line-height: 1.5; margin-bottom: 14px; min-height: 33px; }
@@ -210,13 +225,13 @@
   <!-- Tooltip 懸浮框 -->
   <div class="country-tooltip" id="country-tooltip"></div>
 
-  <!-- Top Navigation -->
+  <!-- Top Navigation Bar -->
   <div class="top-nav">
     <button class="nav-btn active" id="btn-world" onclick="playClickSound(); switchView('MAP')">[ WORLD MAP ]</button>
     <button class="nav-btn" id="btn-cards" onclick="playClickSound(); switchView('CARDS')">[ COUNTRY CARDS ]</button>
   </div>
 
-  <!-- Top Right Controls (Settings & Admin Login) -->
+  <!-- Controls Bar Top Right -->
   <div class="top-right-controls">
     <button class="mode-btn" onclick="playClickSound(); openSettingsModal()">⚙️ SETTINGS</button>
     <button class="admin-btn" id="admin-btn" onclick="playClickSound(); openLoginModal()">[ LOGIN ]</button>
@@ -243,13 +258,13 @@
     <button class="manage-btn" onclick="playClickSound(); openManageModal()">[ EDIT / DELETE CITIES ]</button>
   </div>
 
-  <!-- 向下拉出的 Filter 洲際清單抽屜 (Pack Drawer) -->
+  <!-- Filter 抽屜選單 (Pack Drawer) -->
   <div class="pack-drawer" id="pack-drawer">
     <div class="drawer-title" id="drawer-title">REGION // PACK</div>
     <div id="drawer-content"></div>
   </div>
 
-  <!-- 主頁底部高級能量探索進度條 -->
+  <!-- 底部探索進度條 -->
   <div class="bottom-world-progress" id="world-progress-bar">
     <div class="progress-text-row">
       <span class="progress-title">WORLD EXPLORED</span>
@@ -275,6 +290,7 @@
       <div class="setting-group">
         <button class="setting-opt active" id="opt-theme-noir" onclick="playClickSound(); applyTheme('noir')">黑白經典</button>
         <button class="setting-opt" id="opt-theme-sand" onclick="playClickSound(); applyTheme('sand')">沙白黃金</button>
+        <button class="setting-opt" id="opt-theme-specx" onclick="playClickSound(); applyTheme('specx')">深海凍土</button>
       </div>
 
       <label>REAL-TIME SUNLIGHT (實時日照)</label>
@@ -323,7 +339,7 @@
   <canvas id="world-canvas"></canvas>
 
   <script>
-    /* 防快捷鍵與複製模組 */
+    /* 防快捷鍵模組 */
     document.addEventListener('contextmenu', e => e.preventDefault());
     document.addEventListener('keydown', e => {
       if (
@@ -337,7 +353,6 @@
       }
     });
 
-    /* Supabase 與基礎配置 */
     const SUPABASE_URL = 'https://pmrhldqgabasvohsupbn.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_R9BjF5Dl_puhHVzvPwd7sA_vwRJwO_E';
 
@@ -378,8 +393,9 @@
 
     const TOTAL_WORLD_COUNTRIES = 195;
 
-    /* 100% 精準靜態地標圖典 */
+    /* 100% 完整地標庫圖典 */
     const STATIC_LANDMARKS = {
+      'CANADA': 'https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=800&auto=format&fit=crop',
       'CHINA': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800&auto=format&fit=crop',
       'JAPAN': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&auto=format&fit=crop',
       'NEW ZEALAND': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&auto=format&fit=crop',
@@ -403,19 +419,31 @@
       'MALDIVES': 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&auto=format&fit=crop'
     };
 
-    /* 100% 精準國旗 Code */
+    /* 100% 國旗代碼映射 */
     const COUNTRY_FLAG_CODES = {
-      'CHINA': 'cn', 'JAPAN': 'jp', 'NEW ZEALAND': 'nz', 'THAILAND': 'th', 'TAIWAN': 'tw',
+      'CANADA': 'ca', 'CHINA': 'cn', 'JAPAN': 'jp', 'NEW ZEALAND': 'nz', 'THAILAND': 'th', 'TAIWAN': 'tw',
       'USA': 'us', 'UNITED STATES': 'us', 'FIJI': 'fj', 'AUSTRALIA': 'au', 'MACAU': 'mo', 'HONG KONG': 'hk',
       'KOREA': 'kr', 'SOUTH KOREA': 'kr', 'SINGAPORE': 'sg', 'MALAYSIA': 'my', 'GERMANY': 'de',
       'ITALY': 'it', 'SWITZERLAND': 'ch', 'NORWAY': 'no', 'ICELAND': 'is', 'FINLAND': 'fi',
       'NETHERLANDS': 'nl', 'MALDIVES': 'mv', 'UNITED KINGDOM': 'gb', 'UK': 'gb', 'FRANCE': 'fr'
     };
 
+    /* 國家全量雙語對照表 */
     const COUNTRY_CN_NAME = {
       'JAPAN': '日本', 'CHINA': '中國', 'TAIWAN': '台灣', 'HONG KONG': '香港', 'MACAU': '澳門',
       'SOUTH KOREA': '韓國', 'KOREA': '韓國', 'THAILAND': '泰國', 'VIETNAM': '越南', 'MALAYSIA': '馬來西亞', 'SINGAPORE': '新加坡',
-      'USA': '美國', 'UNITED STATES': '美國', 'CANADA': '加拿大', 'AUSTRALIA': '澳洲', 'NEW ZEALAND': '紐西蘭'
+      'USA': '美國', 'UNITED STATES': '美國', 'CANADA': '加拿大', 'AUSTRALIA': '澳洲', 'NEW ZEALAND': '紐西蘭',
+      'GERMANY': '德國', 'FRANCE': '法國', 'ITALY': '義大利', 'SWITZERLAND': '瑞士', 'NORWAY': '挪威',
+      'ICELAND': '冰島', 'FINLAND': '芬蘭', 'NETHERLANDS': '荷蘭', 'MALDIVES': '馬爾地夫', 'FIJI': '斐濟'
+    };
+
+    /* 五大洲獨立霓虹配色表 */
+    const REGION_COLORS = {
+      'ASIA': { core: '#FF5252', glow: 'rgba(255, 82, 82, ' },
+      'EUROPE': { core: '#80D8FF', glow: 'rgba(128, 216, 255, ' },
+      'AMERICAS': { core: '#FFFFFF', glow: 'rgba(255, 255, 255, ' },
+      'AFRICA': { core: '#FFD740', glow: 'rgba(255, 215, 64, ' },
+      'OCEANIA': { core: '#69F0AE', glow: 'rgba(105, 240, 174, ' }
     };
 
     function cleanCountryName(str) { return str ? str.toString().toUpperCase().replace(/\s+/g, ' ').trim() : 'UNKNOWN'; }
@@ -441,14 +469,13 @@
     function openManageModal() { renderCityManageList(); document.getElementById('manage-modal').style.display = 'flex'; }
     function closeManageModal() { document.getElementById('manage-modal').style.display = 'none'; }
 
-    /* Login 響應與認證處理 */
     async function handleLogin() {
       const email = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-password').value.trim();
       const submitBtn = document.getElementById('login-submit-btn');
 
       if (!email || !password) return alert('請輸入 Email 與 Password！');
-      if (!supabaseClient) return alert("Supabase 初始化失敗，請檢查網路連線！");
+      if (!supabaseClient) return alert("Supabase 初始化失敗！");
 
       submitBtn.innerText = 'LOGGING IN...';
       try {
@@ -462,15 +489,14 @@
           document.getElementById('admin-btn').classList.add('active');
           submitBtn.innerText = 'LOGIN';
           closeLoginModal();
-          alert('登入成功！你現在可以雙擊地圖新增城市或進行管理。');
+          alert('登入成功！');
         }
       } catch(e) {
-        alert('登入過程出錯: ' + e.message);
+        alert('登入出錯: ' + e.message);
         submitBtn.innerText = 'LOGIN';
       }
     }
 
-    /* Filter 抽屜選單 (Pack Drawer) 邏輯 */
     function setFilter(region, element) {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
@@ -529,11 +555,11 @@
       currentTheme = theme;
       document.getElementById('opt-theme-noir').classList.toggle('active', theme === 'noir');
       document.getElementById('opt-theme-sand').classList.toggle('active', theme === 'sand');
-      if (theme === 'sand') {
-        document.body.classList.add('theme-sand');
-      } else {
-        document.body.classList.remove('theme-sand');
-      }
+      document.getElementById('opt-theme-specx').classList.toggle('active', theme === 'specx');
+
+      document.body.classList.remove('theme-sand', 'theme-specx');
+      if (theme === 'sand') document.body.classList.add('theme-sand');
+      else if (theme === 'specx') document.body.classList.add('theme-specx');
     }
 
     function toggleSunlight(enable) {
@@ -662,7 +688,8 @@
       if (mapMode === '3D') {
         const globeRadius = projection.scale(); const center = projection.translate();
         ctx.beginPath(); ctx.arc(center[0], center[1], globeRadius + 1.5, 0, Math.PI * 2);
-        ctx.strokeStyle = currentTheme === 'sand' ? 'rgba(181, 168, 149, 0.6)' : 'rgba(255, 255, 255, 0.25)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = currentTheme === 'specx' ? 'rgba(56, 189, 248, 0.4)' : (currentTheme === 'sand' ? 'rgba(181, 168, 149, 0.6)' : 'rgba(255, 255, 255, 0.25)');
+        ctx.lineWidth = 1; ctx.stroke();
         ctx.beginPath(); ctx.arc(center[0], center[1], globeRadius, 0, Math.PI * 2);
         ctx.fillStyle = landBg; ctx.fill();
       }
@@ -677,8 +704,10 @@
           const countryName = (feature.properties.name || '').toUpperCase();
           if (visitedCountrySet.has(countryName)) {
             ctx.beginPath(); pathGenerator(feature);
-            ctx.fillStyle = currentTheme === 'sand' ? 'rgba(200, 50, 38, 0.15)' : 'rgba(255, 255, 255, 0.08)'; ctx.fill();
-            ctx.strokeStyle = currentTheme === 'sand' ? 'rgba(200, 50, 38, 0.5)' : 'rgba(255, 255, 255, 0.3)'; ctx.stroke();
+            ctx.fillStyle = currentTheme === 'specx' ? 'rgba(56, 189, 248, 0.2)' : (currentTheme === 'sand' ? 'rgba(200, 50, 38, 0.15)' : 'rgba(255, 255, 255, 0.08)');
+            ctx.fill();
+            ctx.strokeStyle = currentTheme === 'specx' ? 'rgba(56, 189, 248, 0.6)' : (currentTheme === 'sand' ? 'rgba(200, 50, 38, 0.5)' : 'rgba(255, 255, 255, 0.3)');
+            ctx.stroke();
           }
         });
 
@@ -697,21 +726,24 @@
         }
       }
 
+      /* 重置點燈顏色：按五大洲獨立亮點 */
       visitedCities.forEach(city => {
-        if (currentFilter !== 'ALL' && cleanCountryName(city.region) !== currentFilter) return;
+        const regionKey = cleanCountryName(city.region);
+        if (currentFilter !== 'ALL' && regionKey !== currentFilter) return;
         const pt = projection([city.lng, city.lat]); if (!pt) return;
         if (mapMode === '3D') {
           if (d3.geoDistance([city.lng, city.lat], projection.invert([width / 2, height / 2])) > Math.PI / 2) return;
         }
 
+        const regionTheme = REGION_COLORS[regionKey] || REGION_COLORS['ASIA'];
         const glowRadius = (10 + Math.sin(pulseTime) * 4) / (mapMode === '2D' ? Math.sqrt(zoomLevel) : 1);
         const gradient = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], glowRadius);
-        gradient.addColorStop(0, 'rgba(215, 25, 33, 1)');
-        gradient.addColorStop(0.4, 'rgba(215, 25, 33, 0.4)');
-        gradient.addColorStop(1, 'rgba(215, 25, 33, 0)');
+        gradient.addColorStop(0, regionTheme.glow + '1)');
+        gradient.addColorStop(0.4, regionTheme.glow + '0.4)');
+        gradient.addColorStop(1, regionTheme.glow + '0)');
 
         ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(pt[0], pt[1], glowRadius, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#D71921'; ctx.beginPath(); ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = regionTheme.core; ctx.beginPath(); ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2); ctx.fill();
 
         ctx.fillStyle = styles.getPropertyValue('--glyph-white').trim();
         ctx.font = '10px Space Mono'; ctx.fillText(`> ${city.city_name.toUpperCase()}`, pt[0] + 8, pt[1] + 3);
