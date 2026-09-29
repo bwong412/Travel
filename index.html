@@ -17,7 +17,7 @@
   <style>
     :root {
       --bg-color: #000000;
-      --panel-bg: rgba(12, 12, 12, 0.88);
+      --panel-bg: rgba(12, 12, 12, 0.92);
       --glyph-white: #ffffff;
       --glyph-red: #D71921;
       --border-color: rgba(255, 255, 255, 0.15);
@@ -28,10 +28,9 @@
       --grid-color: #181818;
     }
 
-    /* 沙白黃金主題變數 */
     body.theme-sand {
       --bg-color: #f4efea;
-      --panel-bg: rgba(244, 239, 234, 0.92);
+      --panel-bg: rgba(244, 239, 234, 0.94);
       --glyph-white: #1a1714;
       --glyph-red: #c83226;
       --border-color: rgba(0, 0, 0, 0.15);
@@ -111,6 +110,22 @@
     }
     .filter-chip:hover, .filter-chip.active { background: var(--glyph-white); color: var(--bg-color); font-weight: bold; border-color: var(--glyph-white); }
 
+    /* 左側慢慢向下拉出來的 Filter 抽屜選單 (Pack Drawer) */
+    .pack-drawer {
+      display: none; position: absolute; top: 250px; left: 15px; z-index: 999;
+      background: var(--panel-bg); border: 1px solid var(--border-color);
+      backdrop-filter: blur(20px); border-radius: 8px; width: 230px; max-height: 45vh;
+      overflow-y: auto; padding: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+      animation: slideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .drawer-title { font-size: 10px; font-weight: bold; color: var(--glyph-white); letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px dashed var(--border-color); padding-bottom: 6px; }
+    .drawer-country { font-size: 10px; font-weight: bold; color: var(--glyph-white); margin-top: 8px; }
+    .drawer-cities { font-size: 9px; color: var(--text-muted); margin-bottom: 6px; line-height: 1.4; word-break: break-word; }
+
     .manage-btn {
       width: 100%; margin-top: 12px; background: transparent; border: 1px solid var(--border-color);
       color: var(--text-muted); font-size: 8px; padding: 4px; cursor: pointer; letter-spacing: 0.8px; text-align: center;
@@ -140,19 +155,19 @@
     /* Modals */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.75); backdrop-filter: blur(10px); z-index: 2000;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 2000;
       justify-content: center; align-items: center;
     }
     .modal {
       background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--glyph-white);
-      padding: 20px; width: 340px; max-height: 80vh; overflow-y: auto; border-radius: 8px; box-shadow: 0 0 40px rgba(0,0,0,0.5);
+      padding: 20px; width: 340px; max-height: 80vh; overflow-y: auto; border-radius: 8px; box-shadow: 0 0 40px rgba(0,0,0,0.6);
     }
     .modal h3 { font-size: 11px; margin-bottom: 12px; letter-spacing: 1px; color: var(--glyph-white); border-bottom: 1px dashed var(--border-color); padding-bottom: 8px; }
     .modal label { font-size: 9px; color: var(--text-muted); letter-spacing: 1px; display: block; margin-top: 10px; margin-bottom: 4px; font-weight: bold; }
     .modal input, .modal select {
-      width: 100%; background: rgba(0,0,0,0.1); border: 1px solid var(--border-color);
+      width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color);
       color: var(--glyph-white); padding: 8px; margin-bottom: 8px; font-size: 11px;
-      font-family: 'Space Mono', monospace; border-radius: 4px;
+      font-family: 'Space Mono', monospace; border-radius: 4px; user-select: text;
     }
     .setting-group { display: flex; gap: 6px; margin-bottom: 12px; }
     .setting-opt {
@@ -184,6 +199,7 @@
 
     @media (max-width: 600px) {
       .dashboard { top: 60px; left: 15px; width: calc(100vw - 30px); }
+      .pack-drawer { top: 310px; left: 15px; width: calc(100vw - 30px); }
       .top-right-controls { top: 15px; right: 15px; }
       .bottom-world-progress { width: calc(100vw - 30px); bottom: 15px; }
     }
@@ -225,6 +241,12 @@
     </div>
 
     <button class="manage-btn" onclick="playClickSound(); openManageModal()">[ EDIT / DELETE CITIES ]</button>
+  </div>
+
+  <!-- 向下拉出的 Filter 洲際清單抽屜 (Pack Drawer) -->
+  <div class="pack-drawer" id="pack-drawer">
+    <div class="drawer-title" id="drawer-title">REGION // PACK</div>
+    <div id="drawer-content"></div>
   </div>
 
   <!-- 主頁底部高級能量探索進度條 -->
@@ -277,7 +299,7 @@
       <input type="password" id="login-password" placeholder="••••••••">
       <div class="modal-actions">
         <button class="btn btn-cancel" onclick="playClickSound(); closeLoginModal()">CANCEL</button>
-        <button class="btn" onclick="playClickSound(); handleLogin()">LOGIN</button>
+        <button class="btn" id="login-submit-btn" onclick="playClickSound(); handleLogin()">LOGIN</button>
       </div>
     </div>
   </div>
@@ -301,7 +323,7 @@
   <canvas id="world-canvas"></canvas>
 
   <script>
-    /* 防檢查模組 */
+    /* 防快捷鍵與複製模組 */
     document.addEventListener('contextmenu', e => e.preventDefault());
     document.addEventListener('keydown', e => {
       if (
@@ -314,15 +336,6 @@
         e.preventDefault(); e.stopPropagation(); return false;
       }
     });
-
-    setInterval(() => {
-      const startTime = performance.now();
-      debugger;
-      const endTime = performance.now();
-      if (endTime - startTime > 100) {
-        document.body.innerHTML = '<div style="color:#888; background:#000; height:100vh; display:flex; justify-content:center; align-items:center; font-family:monospace;">[ PROTECTION ACTIVATED ]</div>';
-      }
-    }, 1000);
 
     /* Supabase 與基礎配置 */
     const SUPABASE_URL = 'https://pmrhldqgabasvohsupbn.supabase.co';
@@ -365,6 +378,7 @@
 
     const TOTAL_WORLD_COUNTRIES = 195;
 
+    /* 100% 精準靜態地標圖典 */
     const STATIC_LANDMARKS = {
       'CHINA': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800&auto=format&fit=crop',
       'JAPAN': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&auto=format&fit=crop',
@@ -374,12 +388,28 @@
       'USA': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
       'UNITED STATES': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
       'FIJI': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&auto=format&fit=crop',
-      'AUSTRALIA': 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800&auto=format&fit=crop'
+      'AUSTRALIA': 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800&auto=format&fit=crop',
+      'KOREA': 'https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800&auto=format&fit=crop',
+      'SOUTH KOREA': 'https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800&auto=format&fit=crop',
+      'SINGAPORE': 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=800&auto=format&fit=crop',
+      'MALAYSIA': 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=800&auto=format&fit=crop',
+      'GERMANY': 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800&auto=format&fit=crop',
+      'ITALY': 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=800&auto=format&fit=crop',
+      'SWITZERLAND': 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=800&auto=format&fit=crop',
+      'NORWAY': 'https://images.unsplash.com/photo-1507272931001-fc06c17e4f43?w=800&auto=format&fit=crop',
+      'ICELAND': 'https://images.unsplash.com/photo-1504893524553-b855bce32c67?w=800&auto=format&fit=crop',
+      'FINLAND': 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&auto=format&fit=crop',
+      'NETHERLANDS': 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=800&auto=format&fit=crop',
+      'MALDIVES': 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&auto=format&fit=crop'
     };
 
+    /* 100% 精準國旗 Code */
     const COUNTRY_FLAG_CODES = {
       'CHINA': 'cn', 'JAPAN': 'jp', 'NEW ZEALAND': 'nz', 'THAILAND': 'th', 'TAIWAN': 'tw',
-      'USA': 'us', 'UNITED STATES': 'us', 'FIJI': 'fj', 'AUSTRALIA': 'au', 'MACAU': 'mo', 'HONG KONG': 'hk'
+      'USA': 'us', 'UNITED STATES': 'us', 'FIJI': 'fj', 'AUSTRALIA': 'au', 'MACAU': 'mo', 'HONG KONG': 'hk',
+      'KOREA': 'kr', 'SOUTH KOREA': 'kr', 'SINGAPORE': 'sg', 'MALAYSIA': 'my', 'GERMANY': 'de',
+      'ITALY': 'it', 'SWITZERLAND': 'ch', 'NORWAY': 'no', 'ICELAND': 'is', 'FINLAND': 'fi',
+      'NETHERLANDS': 'nl', 'MALDIVES': 'mv', 'UNITED KINGDOM': 'gb', 'UK': 'gb', 'FRANCE': 'fr'
     };
 
     const COUNTRY_CN_NAME = {
@@ -410,6 +440,78 @@
     function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
     function openManageModal() { renderCityManageList(); document.getElementById('manage-modal').style.display = 'flex'; }
     function closeManageModal() { document.getElementById('manage-modal').style.display = 'none'; }
+
+    /* Login 響應與認證處理 */
+    async function handleLogin() {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value.trim();
+      const submitBtn = document.getElementById('login-submit-btn');
+
+      if (!email || !password) return alert('請輸入 Email 與 Password！');
+      if (!supabaseClient) return alert("Supabase 初始化失敗，請檢查網路連線！");
+
+      submitBtn.innerText = 'LOGGING IN...';
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+          alert('登入失敗: ' + error.message);
+          submitBtn.innerText = 'LOGIN';
+        } else {
+          currentUser = data.user;
+          document.getElementById('admin-btn').innerText = '[ ADMIN ON ]';
+          document.getElementById('admin-btn').classList.add('active');
+          submitBtn.innerText = 'LOGIN';
+          closeLoginModal();
+          alert('登入成功！你現在可以雙擊地圖新增城市或進行管理。');
+        }
+      } catch(e) {
+        alert('登入過程出錯: ' + e.message);
+        submitBtn.innerText = 'LOGIN';
+      }
+    }
+
+    /* Filter 抽屜選單 (Pack Drawer) 邏輯 */
+    function setFilter(region, element) {
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      element.classList.add('active');
+      currentFilter = region;
+
+      const drawer = document.getElementById('pack-drawer');
+      const drawerTitle = document.getElementById('drawer-title');
+      const drawerContent = document.getElementById('drawer-content');
+
+      if (region === 'ALL') {
+        drawer.style.display = 'none';
+        return;
+      }
+
+      drawerTitle.innerText = `${region} // EXPLORED`;
+      drawerContent.innerHTML = '';
+
+      const filtered = visitedCities.filter(c => cleanCountryName(c.region) === region);
+      const grouped = {};
+      filtered.forEach(c => {
+        const country = cleanCountryName(c.country);
+        if (!grouped[country]) grouped[country] = [];
+        grouped[country].push(c.city_name);
+      });
+
+      const countries = Object.keys(grouped);
+      if (countries.length === 0) {
+        drawerContent.innerHTML = '<div style="font-size:9px; color:var(--text-muted);">NO CITIES IN THIS REGION YET.</div>';
+      } else {
+        countries.forEach(country => {
+          const div = document.createElement('div');
+          div.innerHTML = `
+            <div class="drawer-country">> ${country}</div>
+            <div class="drawer-cities">${grouped[country].join(', ')}</div>
+          `;
+          drawerContent.appendChild(div);
+        });
+      }
+
+      drawer.style.display = 'block';
+    }
 
     function applySettingMode(mode) {
       mapMode = mode;
@@ -596,7 +698,7 @@
       }
 
       visitedCities.forEach(city => {
-        if (currentFilter !== 'ALL' && city.region && city.region !== currentFilter) return;
+        if (currentFilter !== 'ALL' && cleanCountryName(city.region) !== currentFilter) return;
         const pt = projection([city.lng, city.lat]); if (!pt) return;
         if (mapMode === '3D') {
           if (d3.geoDistance([city.lng, city.lat], projection.invert([width / 2, height / 2])) > Math.PI / 2) return;
@@ -620,11 +722,6 @@
     }
 
     renderCanvas();
-
-    function setFilter(region, element) {
-      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-      element.classList.add('active'); currentFilter = region;
-    }
 
     function switchView(view) {
       if (view === 'CARDS') {
@@ -684,6 +781,43 @@
         `;
         container.appendChild(card);
       });
+    }
+
+    function renderCityManageList() {
+      const container = document.getElementById('city-list-container');
+      container.innerHTML = '';
+
+      if (visitedCities.length === 0) {
+        container.innerHTML = '<div style="color:#666; font-size:10px;">NO CITIES UNLOCKED YET.</div>';
+        return;
+      }
+
+      visitedCities.forEach((city, index) => {
+        const div = document.createElement('div');
+        div.style.display = 'flex'; div.style.justifyContent = 'space-between'; div.style.alignItems = 'center';
+        div.style.padding = '8px 0'; div.style.borderBottom = '1px dashed var(--border-color)'; div.style.fontSize = '10px';
+        div.innerHTML = `
+          <span>> ${city.city_name.toUpperCase()} (${city.country})</span>
+          <span style="color:var(--glyph-red); cursor:pointer; font-weight:bold;" onclick="playClickSound(); deleteCity(${index})">[DEL]</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function deleteCity(index) {
+      if (!currentUser) return alert('請先登入管理員帳號！');
+      const target = visitedCities[index];
+      if (!confirm(`確定刪除 ${target.city_name} (${target.country})？`)) return;
+
+      if (supabaseClient && target.id) {
+        const { error } = await supabaseClient.from('visited_cities').delete().eq('id', target.id);
+        if (error) return alert('DELETE ERROR: ' + error.message);
+      }
+
+      visitedCities.splice(index, 1);
+      document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
+      updateWorldProgress();
+      renderCityManageList();
     }
   </script>
 </body>
