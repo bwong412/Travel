@@ -220,7 +220,7 @@
 
     @media (max-width: 600px) {
       .dashboard { top: 60px; left: 15px; width: calc(100vw - 30px); }
-      .pack-drawer { top: 310px; left: 15px; width: calc(100vw - 30px); }
+      .pack-drawer { top: auto; bottom: 85px; left: 15px; width: calc(100vw - 30px); max-height: 35vh; }
       .top-right-controls { top: 15px; right: 15px; }
       .bottom-world-progress { width: calc(100vw - 30px); bottom: 15px; }
     }
@@ -425,9 +425,9 @@
     let visitedCities = [];
     let currentFilter = 'ALL';
     let mapMode = '2D';
-    let currentTheme = 'noir';
+    let currentTheme = localStorage.getItem('tm_theme') || 'noir';
     let isSunlightOn = false;
-    let showCityLabels = true;
+    let showCityLabels = localStorage.getItem('tm_show_labels') !== 'false';
 
     const TOTAL_WORLD_COUNTRIES = 195;
 
@@ -480,14 +480,21 @@
       'OCEANIA': { core: '#69F0AE', glow: 'rgba(105, 240, 174, ' }
     };
 
-    /* 各洲專屬精確地標座標與舒適全景 Zoom 放大倍數配置 */
+    /* 各洲專屬精確地標座標與全景 Zoom 放大倍數配置 */
     const REGION_TARGETS = {
-      'ASIA': { lng: 113.5439, lat: 22.1987, zoom: 1.8 },     // 澳門 (Macau)
-      'EUROPE': { lng: 12.4964, lat: 41.9028, zoom: 2.2 },     // 羅馬 (Rome, Italy)
-      'AMERICAS': { lng: -75.6972, lat: 45.4215, zoom: 1.5 },   // 渥太華 (Ottawa, Canada)
-      'AFRICA': { lng: 15.2663, lat: -4.4419, zoom: 1.6 },     // 金沙薩 (Kinshasa, Congo)
-      'OCEANIA': { lng: 174.7633, lat: -36.8485, zoom: 1.8 }   // 奧克蘭 (Auckland, New Zealand)
+      'ALL': { lng: 0, lat: 20, zoom: 1.0 },
+      'ASIA': { lng: 113.5439, lat: 22.1987, zoom: 1.8 },     // 澳門
+      'EUROPE': { lng: 12.4964, lat: 41.9028, zoom: 2.2 },     // 羅馬
+      'AMERICAS': { lng: -75.6972, lat: 45.4215, zoom: 1.5 },   // 渥太華
+      'AFRICA': { lng: 15.2663, lat: -4.4419, zoom: 1.6 },     // 金沙薩
+      'OCEANIA': { lng: 174.7633, lat: -36.8485, zoom: 1.8 }   // 奧克蘭
     };
+
+    // 平滑飛躍動畫狀態變數 (Lerp Interpolation)
+    let currentCenter = [0, 20];
+    let targetCenter = [0, 20];
+    let currentScale = 1.0;
+    let targetScale = 1.0;
 
     function cleanCountryName(str) { return str ? str.toString().toUpperCase().replace(/\s+/g, ' ').trim() : 'UNKNOWN'; }
 
@@ -557,7 +564,7 @@
       }
     }
 
-    /* Filter 修正：直接重置 Projection Center 實現精準對焦 */
+    /* 平滑鏡頭飛躍控制 Filter */
     function setFilter(region, element) {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
@@ -566,30 +573,13 @@
       targetPan = { x: 0, y: 0 };
       panOffset = { x: 0, y: 0 };
 
+      const target = REGION_TARGETS[region] || REGION_TARGETS['ALL'];
+      targetCenter = [target.lng, target.lat];
+      targetScale = target.zoom;
+
       if (region === 'ALL') {
-        targetZoom = 1.0;
-        if (mapMode === '3D') {
-          rotation = [0, 0];
-          projection.rotate([0, 0]);
-          projection.scale(Math.min(width, height) / 2.4);
-        } else {
-          projection.center([0, 20]).scale(width / 6.5).translate([width / 2, height / 1.6]);
-        }
         document.getElementById('pack-drawer').style.display = 'none';
         return;
-      }
-
-      // 精確中心對焦與適度 Zoom
-      const target = REGION_TARGETS[region];
-      if (target) {
-        targetZoom = target.zoom;
-        if (mapMode === '3D') {
-          rotation = [-target.lng, -target.lat];
-          projection.rotate([rotation[0], rotation[1]]);
-          projection.scale(Math.min(width, height) / 2.4 * targetZoom);
-        } else {
-          projection.center([target.lng, target.lat]).scale((width / 6.5) * targetZoom).translate([width / 2, height / 2]);
-        }
       }
 
       const drawer = document.getElementById('pack-drawer');
@@ -631,13 +621,14 @@
       if (mode === '3D') {
         projection = d3.geoOrthographic().scale(Math.min(width, height) / 2.4).translate([width / 2, height / 2]).clipAngle(90);
       } else {
-        projection = d3.geoMercator().center([0, 20]).scale(width / 6.5).translate([width / 2, height / 1.6]);
+        projection = d3.geoMercator().center(currentCenter).scale((width / 6.5) * currentScale).translate([width / 2, height / 2]);
       }
       pathGenerator.projection(projection);
     }
 
     function applyTheme(theme) {
       currentTheme = theme;
+      localStorage.setItem('tm_theme', theme);
       document.getElementById('opt-theme-noir').classList.toggle('active', theme === 'noir');
       document.getElementById('opt-theme-sand').classList.toggle('active', theme === 'sand');
       document.getElementById('opt-theme-specx').classList.toggle('active', theme === 'specx');
@@ -649,6 +640,7 @@
 
     function toggleCityLabels(enable) {
       showCityLabels = enable;
+      localStorage.setItem('tm_show_labels', enable);
       document.getElementById('opt-labels-on').classList.toggle('active', enable);
       document.getElementById('opt-labels-off').classList.toggle('active', !enable);
     }
@@ -682,7 +674,7 @@
     let hoveredCountryFeature = null; let hoverTimer = null;
     const tooltipEl = document.getElementById('country-tooltip');
 
-    let projection = d3.geoMercator().center([0, 20]).scale(width / 6.5).translate([width / 2, height / 1.6]);
+    let projection = d3.geoMercator().center(currentCenter).scale(width / 6.5).translate([width / 2, height / 2]);
     const pathGenerator = d3.geoPath().projection(projection).context(ctx);
 
     canvas.addEventListener('dblclick', (e) => {
@@ -697,8 +689,8 @@
       let clickY = e.clientY - rect.top;
 
       if (mapMode === '2D') {
-        clickX = (clickX - panOffset.x) / zoomLevel;
-        clickY = (clickY - panOffset.y) / zoomLevel;
+        clickX = (clickX - panOffset.x);
+        clickY = (clickY - panOffset.y);
       }
 
       const coords = projection.invert([clickX, clickY]);
@@ -727,7 +719,7 @@
     function handlePointerHover(e, isTap = false) {
       const rect = canvas.getBoundingClientRect();
       let mouseX = e.clientX - rect.left; let mouseY = e.clientY - rect.top;
-      if (mapMode === '2D') { mouseX = (mouseX - panOffset.x) / zoomLevel; mouseY = (mouseY - panOffset.y) / zoomLevel; }
+      if (mapMode === '2D') { mouseX = (mouseX - panOffset.x); mouseY = (mouseY - panOffset.y); }
 
       const coords = projection.invert([mouseX, mouseY]);
       if (coords && worldGeoData) {
@@ -757,28 +749,46 @@
 
     canvas.addEventListener('wheel', e => {
       e.preventDefault(); lastUserActionTime = Date.now();
-      const delta = e.deltaY < 0 ? 0.05 : -0.05;
-      targetZoom = Math.max(0.6, Math.min(targetZoom + delta, 6.0));
-      if (mapMode === '3D') projection.scale(Math.min(width, height) / 2.4 * targetZoom);
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      targetScale = Math.max(0.6, Math.min(targetScale + delta, 6.0));
     }, { passive: false });
 
     window.addEventListener('resize', () => {
       width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight;
-      if (mapMode === '3D') projection.scale(Math.min(width, height) / 2.4 * targetZoom).translate([width / 2, height / 2]);
-      else projection.translate([width / 2, height / 1.6]);
+      if (mapMode === '3D') projection.scale(Math.min(width, height) / 2.4 * targetScale).translate([width / 2, height / 2]);
+      else projection.center(currentCenter).scale((width / 6.5) * currentScale).translate([width / 2, height / 2]);
     });
 
     let worldGeoData = null;
     fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
-      .then(res => res.json()).then(data => { worldGeoData = data; fetchVisitedCities(); }).catch(e => fetchVisitedCities());
+      .then(res => res.json()).then(data => { 
+        worldGeoData = data; 
+        fetchVisitedCities(); 
+        applyTheme(currentTheme);
+        toggleCityLabels(showCityLabels);
+      }).catch(e => fetchVisitedCities());
 
     let pulseTime = 0;
     function renderCanvas() {
       pulseTime += 0.03;
+
+      // 順滑 Lerp 動畫更新 Projection 狀態
+      currentCenter[0] += (targetCenter[0] - currentCenter[0]) * 0.08;
+      currentCenter[1] += (targetCenter[1] - currentCenter[1]) * 0.08;
+      currentScale += (targetScale - currentScale) * 0.08;
+
       if (mapMode === '2D') {
-        zoomLevel += (targetZoom - zoomLevel) * 0.1; panOffset.x += (targetPan.x - panOffset.x) * 0.1; panOffset.y += (targetPan.y - panOffset.y) * 0.1;
-      } else if (mapMode === '3D' && !isDragging && (Date.now() - lastUserActionTime > IDLE_ROTATION_DELAY)) {
-        rotation[0] += 0.15; projection.rotate([rotation[0], rotation[1]]);
+        panOffset.x += (targetPan.x - panOffset.x) * 0.1; 
+        panOffset.y += (targetPan.y - panOffset.y) * 0.1;
+        projection.center(currentCenter).scale((width / 6.5) * currentScale);
+      } else if (mapMode === '3D') {
+        if (!isDragging && (Date.now() - lastUserActionTime > IDLE_ROTATION_DELAY)) {
+          rotation[0] += 0.15; projection.rotate([rotation[0], rotation[1]]);
+        } else {
+          rotation = [-currentCenter[0], -currentCenter[1]];
+          projection.rotate([rotation[0], rotation[1]]);
+        }
+        projection.scale((Math.min(width, height) / 2.4) * currentScale);
       }
 
       const styles = getComputedStyle(document.body);
