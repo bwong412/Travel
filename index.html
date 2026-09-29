@@ -480,13 +480,13 @@
       'OCEANIA': { core: '#69F0AE', glow: 'rgba(105, 240, 174, ' }
     };
 
-    /* 各洲專屬精確地標座標與 Zoom 放大倍數配置 */
+    /* 各洲專屬精確地標座標與舒適全景 Zoom 放大倍數配置 */
     const REGION_TARGETS = {
-      'ASIA': { lng: 113.5439, lat: 22.1987, zoom: 2.5 },     // 澳門 (Macau)
-      'EUROPE': { lng: 12.4964, lat: 41.9028, zoom: 3.0 },     // 羅馬 (Rome, Italy)
-      'AMERICAS': { lng: -75.6972, lat: 45.4215, zoom: 2.0 },   // 渥太華 (Ottawa, Canada)
-      'AFRICA': { lng: 15.2663, lat: -4.4419, zoom: 2.2 },     // 金沙薩 (Kinshasa, Congo)
-      'OCEANIA': { lng: 174.7633, lat: -36.8485, zoom: 2.6 }   // 奧克蘭 (Auckland, New Zealand)
+      'ASIA': { lng: 113.5439, lat: 22.1987, zoom: 1.8 },     // 澳門 (Macau)
+      'EUROPE': { lng: 12.4964, lat: 41.9028, zoom: 2.2 },     // 羅馬 (Rome, Italy)
+      'AMERICAS': { lng: -75.6972, lat: 45.4215, zoom: 1.5 },   // 渥太華 (Ottawa, Canada)
+      'AFRICA': { lng: 15.2663, lat: -4.4419, zoom: 1.6 },     // 金沙薩 (Kinshasa, Congo)
+      'OCEANIA': { lng: 174.7633, lat: -36.8485, zoom: 1.8 }   // 奧克蘭 (Auckland, New Zealand)
     };
 
     function cleanCountryName(str) { return str ? str.toString().toUpperCase().replace(/\s+/g, ' ').trim() : 'UNKNOWN'; }
@@ -557,39 +557,38 @@
       }
     }
 
-    /* Filter 升級版：聚焦至指定標籤城市座標 */
+    /* Filter 修正：直接重置 Projection Center 實現精準對焦 */
     function setFilter(region, element) {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
       currentFilter = region;
 
+      targetPan = { x: 0, y: 0 };
+      panOffset = { x: 0, y: 0 };
+
       if (region === 'ALL') {
         targetZoom = 1.0;
-        targetPan = { x: 0, y: 0 };
         if (mapMode === '3D') {
           rotation = [0, 0];
           projection.rotate([0, 0]);
           projection.scale(Math.min(width, height) / 2.4);
+        } else {
+          projection.center([0, 20]).scale(width / 6.5).translate([width / 2, height / 1.6]);
         }
         document.getElementById('pack-drawer').style.display = 'none';
         return;
       }
 
-      // 精確飛躍與 Zoom 近至對應核心城市
+      // 精確中心對焦與適度 Zoom
       const target = REGION_TARGETS[region];
       if (target) {
+        targetZoom = target.zoom;
         if (mapMode === '3D') {
           rotation = [-target.lng, -target.lat];
           projection.rotate([rotation[0], rotation[1]]);
-          targetZoom = target.zoom;
           projection.scale(Math.min(width, height) / 2.4 * targetZoom);
         } else {
-          targetZoom = target.zoom;
-          const centerPt = projection([target.lng, target.lat]);
-          if (centerPt) {
-            targetPan.x = (width / 2 - centerPt[0]) * targetZoom;
-            targetPan.y = (height / 2 - centerPt[1]) * targetZoom;
-          }
+          projection.center([target.lng, target.lat]).scale((width / 6.5) * targetZoom).translate([width / 2, height / 2]);
         }
       }
 
@@ -632,7 +631,7 @@
       if (mode === '3D') {
         projection = d3.geoOrthographic().scale(Math.min(width, height) / 2.4).translate([width / 2, height / 2]).clipAngle(90);
       } else {
-        projection = d3.geoMercator().scale(width / 6.5).translate([width / 2, height / 1.6]);
+        projection = d3.geoMercator().center([0, 20]).scale(width / 6.5).translate([width / 2, height / 1.6]);
       }
       pathGenerator.projection(projection);
     }
@@ -683,7 +682,7 @@
     let hoveredCountryFeature = null; let hoverTimer = null;
     const tooltipEl = document.getElementById('country-tooltip');
 
-    let projection = d3.geoMercator().scale(width / 6.5).translate([width / 2, height / 1.6]);
+    let projection = d3.geoMercator().center([0, 20]).scale(width / 6.5).translate([width / 2, height / 1.6]);
     const pathGenerator = d3.geoPath().projection(projection).context(ctx);
 
     canvas.addEventListener('dblclick', (e) => {
@@ -792,7 +791,7 @@
 
       ctx.fillStyle = canvasBg; ctx.fillRect(0, 0, width, height);
       ctx.save();
-      if (mapMode === '2D') { ctx.translate(panOffset.x, panOffset.y); ctx.scale(zoomLevel, zoomLevel); }
+      if (mapMode === '2D') { ctx.translate(panOffset.x, panOffset.y); }
 
       ctx.fillStyle = gridColor;
       for (let x = -width; x < width * 2; x += 24) {
@@ -813,7 +812,7 @@
       if (window.topojson && worldGeoData) {
         const countries = topojson.feature(worldGeoData, worldGeoData.objects.countries);
         ctx.beginPath(); pathGenerator(countries); ctx.fillStyle = landBg; ctx.fill();
-        ctx.strokeStyle = strokeColor; ctx.lineWidth = 0.8 / (mapMode === '2D' ? zoomLevel : 1); ctx.stroke();
+        ctx.strokeStyle = strokeColor; ctx.lineWidth = 0.8; ctx.stroke();
 
         const visitedCountrySet = new Set(visitedCities.map(c => cleanCountryName(c.country)));
         countries.features.forEach(feature => {
@@ -851,7 +850,7 @@
         }
 
         const regionTheme = REGION_COLORS[regionKey] || REGION_COLORS['ASIA'];
-        const glowRadius = (10 + Math.sin(pulseTime) * 4) / (mapMode === '2D' ? Math.sqrt(zoomLevel) : 1);
+        const glowRadius = 10 + Math.sin(pulseTime) * 4;
         const gradient = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], glowRadius);
         gradient.addColorStop(0, regionTheme.glow + '1)');
         gradient.addColorStop(0.4, regionTheme.glow + '0.4)');
@@ -922,8 +921,7 @@
         renderCountryCards();
       } else {
         document.getElementById('cards-view').style.display = 'none';
-        document.getElementById('btn-world').classList.active ? null : document.getElementById('btn-world').classList.add('active');
-        document.getElementById('btn-cards').classList.remove('active');
+        document.getElementById('btn-world').classList.add('active'); document.getElementById('btn-cards').classList.remove('active');
       }
     }
 
