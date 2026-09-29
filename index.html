@@ -480,13 +480,13 @@
       'OCEANIA': { core: '#69F0AE', glow: 'rgba(105, 240, 174, ' }
     };
 
-    /* 各洲中心座標與 Zoom 放放大倍數配置 */
+    /* 各洲專屬精確地標座標與 Zoom 放大倍數配置 */
     const REGION_TARGETS = {
-      'ASIA': { lng: 95, lat: 25, zoom: 2.2 },
-      'EUROPE': { lng: 15, lat: 50, zoom: 3.2 },
-      'AMERICAS': { lng: -90, lat: 20, zoom: 1.8 },
-      'AFRICA': { lng: 20, lat: 0, zoom: 2.0 },
-      'OCEANIA': { lng: 140, lat: -25, zoom: 2.4 }
+      'ASIA': { lng: 113.5439, lat: 22.1987, zoom: 2.5 },     // 澳門 (Macau)
+      'EUROPE': { lng: 12.4964, lat: 41.9028, zoom: 3.0 },     // 羅馬 (Rome, Italy)
+      'AMERICAS': { lng: -75.6972, lat: 45.4215, zoom: 2.0 },   // 渥太華 (Ottawa, Canada)
+      'AFRICA': { lng: 15.2663, lat: -4.4419, zoom: 2.2 },     // 金沙薩 (Kinshasa, Congo)
+      'OCEANIA': { lng: 174.7633, lat: -36.8485, zoom: 2.6 }   // 奧克蘭 (Auckland, New Zealand)
     };
 
     function cleanCountryName(str) { return str ? str.toString().toUpperCase().replace(/\s+/g, ' ').trim() : 'UNKNOWN'; }
@@ -557,7 +557,7 @@
       }
     }
 
-    /* Filter 升級版：點擊自動縮放並飛躍聚焦到對應大洲 */
+    /* Filter 升級版：聚焦至指定標籤城市座標 */
     function setFilter(region, element) {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
@@ -575,7 +575,7 @@
         return;
       }
 
-      // 智慧飛躍與 Zoom 近至目標大洲
+      // 精確飛躍與 Zoom 近至對應核心城市
       const target = REGION_TARGETS[region];
       if (target) {
         if (mapMode === '3D') {
@@ -585,7 +585,6 @@
           projection.scale(Math.min(width, height) / 2.4 * targetZoom);
         } else {
           targetZoom = target.zoom;
-          // 計算平移中心偏移
           const centerPt = projection([target.lng, target.lat]);
           if (centerPt) {
             targetPan.x = (width / 2 - centerPt[0]) * targetZoom;
@@ -923,7 +922,8 @@
         renderCountryCards();
       } else {
         document.getElementById('cards-view').style.display = 'none';
-        document.getElementById('btn-world').classList.add('active'); document.getElementById('btn-cards').classList.remove('active');
+        document.getElementById('btn-world').classList.active ? null : document.getElementById('btn-world').classList.add('active');
+        document.getElementById('btn-cards').classList.remove('active');
       }
     }
 
