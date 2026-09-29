@@ -44,7 +44,7 @@
       --label-color: #1a1714;
     }
 
-    /* 深海凍土 (Spec X UI) 主題變數 (優化對比度) */
+    /* 深海凍土 (Spec X UI) 主題變數 */
     body.theme-specx {
       --bg-color: #030813;
       --panel-bg: rgba(6, 16, 32, 0.92);
@@ -128,7 +128,7 @@
     }
     .filter-chip:hover, .filter-chip.active { background: var(--glyph-white); color: var(--bg-color); font-weight: bold; border-color: var(--glyph-white); }
 
-    /* 左側 Pack Drawer 抽屜 */
+    /* Pack Drawer 抽屜 */
     .pack-drawer {
       display: none; position: absolute; top: 250px; left: 15px; z-index: 999;
       background: var(--panel-bg); border: 1px solid var(--border-color);
@@ -323,6 +323,31 @@
     </div>
   </div>
 
+  <!-- Add City Modal -->
+  <div class="modal-overlay" id="add-city-modal">
+    <div class="modal">
+      <h3>ADD NEW UNLOCKED CITY</h3>
+      <label>COORDINATES (LAT, LNG)</label>
+      <input type="text" id="add-coords" placeholder="e.g. 35.67, 139.65">
+      <label>CITY NAME</label>
+      <input type="text" id="add-city-name" placeholder="e.g. TOKYO">
+      <label>COUNTRY NAME</label>
+      <input type="text" id="add-country-name" placeholder="e.g. JAPAN">
+      <label>REGION / CONTINENT</label>
+      <select id="add-region">
+        <option value="ASIA">ASIA (赤紅光)</option>
+        <option value="EUROPE">EUROPE (冰藍光)</option>
+        <option value="AMERICAS">AMERICAS (純白光)</option>
+        <option value="AFRICA">AFRICA (琥珀黃)</option>
+        <option value="OCEANIA">OCEANIA (翡翠綠)</option>
+      </select>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="playClickSound(); closeAddCityModal()">CANCEL</button>
+        <button class="btn" onclick="playClickSound(); confirmAddCity()">SAVE CITY</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Manage Modal -->
   <div class="modal-overlay" id="manage-modal">
     <div class="modal">
@@ -467,6 +492,23 @@
     function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
     function openManageModal() { renderCityManageList(); document.getElementById('manage-modal').style.display = 'flex'; }
     function closeManageModal() { document.getElementById('manage-modal').style.display = 'none'; }
+    function closeAddCityModal() { document.getElementById('add-city-modal').style.display = 'none'; }
+
+    function openAddCityModal(lat, lng) {
+      if (lat !== undefined && lng !== undefined) {
+        document.getElementById('add-coords').value = `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+        if (lng > 60 && lng < 150 && lat > 0) document.getElementById('add-region').value = 'ASIA';
+        else if (lng > -15 && lng < 50 && lat > 35) document.getElementById('add-region').value = 'EUROPE';
+        else if (lng < -30) document.getElementById('add-region').value = 'AMERICAS';
+        else if (lng > -20 && lng < 55 && lat <= 35 && lat > -35) document.getElementById('add-region').value = 'AFRICA';
+        else if (lng >= 110 && lat < 0) document.getElementById('add-region').value = 'OCEANIA';
+      } else {
+        document.getElementById('add-coords').value = '';
+      }
+      document.getElementById('add-city-name').value = '';
+      document.getElementById('add-country-name').value = '';
+      document.getElementById('add-city-modal').style.display = 'flex';
+    }
 
     async function handleLogin() {
       const email = document.getElementById('login-email').value.trim();
@@ -488,7 +530,7 @@
           document.getElementById('admin-btn').classList.add('active');
           submitBtn.innerText = 'LOGIN';
           closeLoginModal();
-          alert('登入成功！');
+          alert('登入成功！你現在可以雙擊地圖新增城市。');
         }
       } catch(e) {
         alert('登入出錯: ' + e.message);
@@ -496,19 +538,26 @@
       }
     }
 
+    /* Filter 晶片邏輯 (按 ALL 自動重置 100% 視角) */
     function setFilter(region, element) {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
       currentFilter = region;
 
+      // 點擊 ALL 重置 100% Zoom Out 全景
+      if (region === 'ALL') {
+        targetZoom = 1.0;
+        targetPan = { x: 0, y: 0 };
+        if (mapMode === '3D') {
+          projection.scale(Math.min(width, height) / 2.4);
+        }
+        document.getElementById('pack-drawer').style.display = 'none';
+        return;
+      }
+
       const drawer = document.getElementById('pack-drawer');
       const drawerTitle = document.getElementById('drawer-title');
       const drawerContent = document.getElementById('drawer-content');
-
-      if (region === 'ALL') {
-        drawer.style.display = 'none';
-        return;
-      }
 
       drawerTitle.innerText = `${region} // EXPLORED`;
       drawerContent.innerHTML = '';
@@ -592,6 +641,29 @@
 
     let projection = d3.geoMercator().scale(width / 6.5).translate([width / 2, height / 1.6]);
     const pathGenerator = d3.geoPath().projection(projection).context(ctx);
+
+    /* 雙擊（Double Click）觸發新增城市彈窗 */
+    canvas.addEventListener('dblclick', (e) => {
+      playClickSound();
+      if (!currentUser) {
+        alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號！');
+        return;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      let clickX = e.clientX - rect.left;
+      let clickY = e.clientY - rect.top;
+
+      if (mapMode === '2D') {
+        clickX = (clickX - panOffset.x) / zoomLevel;
+        clickY = (clickY - panOffset.y) / zoomLevel;
+      }
+
+      const coords = projection.invert([clickX, clickY]);
+      if (!coords) return;
+
+      openAddCityModal(coords[1], coords[0]);
+    });
 
     canvas.addEventListener('pointerdown', e => { isDragging = true; dragStart = { x: e.clientX, y: e.clientY }; lastUserActionTime = Date.now(); });
     canvas.addEventListener('pointermove', e => {
@@ -726,7 +798,6 @@
         }
       }
 
-      /* 渲染點燈與高清文字標籤 (加強描邊防撞色) */
       visitedCities.forEach(city => {
         const regionKey = cleanCountryName(city.region);
         if (currentFilter !== 'ALL' && regionKey !== currentFilter) return;
@@ -745,7 +816,6 @@
         ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(pt[0], pt[1], glowRadius, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = regionTheme.core; ctx.beginPath(); ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2); ctx.fill();
 
-        // 黑色高對比描邊 + 動態主題字體色，徹底解決撞色
         const labelText = `> ${city.city_name.toUpperCase()}`;
         ctx.font = 'bold 10px Space Mono';
         ctx.strokeStyle = currentTheme === 'specx' ? 'rgba(255, 255, 255, 0.9)' : '#000000';
@@ -761,6 +831,43 @@
     }
 
     renderCanvas();
+
+    async function confirmAddCity() {
+      const coordsInput = document.getElementById('add-coords').value.trim();
+      const cityName = document.getElementById('add-city-name').value.trim();
+      const countryInput = document.getElementById('add-country-name').value;
+      const region = document.getElementById('add-region').value;
+
+      if (!coordsInput || !cityName) return alert('請填寫完整資訊！');
+
+      const country = cleanCountryName(countryInput);
+      const parts = coordsInput.split(',');
+      const lat = parseFloat(parts[0].trim());
+      const lng = parseFloat(parts[1].trim());
+
+      if (supabaseClient) {
+        const { data, error } = await supabaseClient.from('visited_cities').insert([
+          {
+            city_code: cityName.substring(0,3).toUpperCase() + Math.floor(Math.random() * 100),
+            city_name: cityName,
+            country: country,
+            region: region,
+            lat: lat,
+            lng: lng,
+            is_visited: true
+          }
+        ]).select();
+
+        if (error) return alert('INSERT ERROR: ' + error.message);
+        if (data) visitedCities.push(data[0]);
+      } else {
+        visitedCities.push({ city_name: cityName, country, region, lat, lng });
+      }
+
+      document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
+      updateWorldProgress();
+      closeAddCityModal();
+    }
 
     function switchView(view) {
       if (view === 'CARDS') {
