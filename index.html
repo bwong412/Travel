@@ -98,7 +98,7 @@
     .stat-number { font-size: 28px; font-weight: bold; }
     .stat-label { font-size: 9px; color: var(--text-muted); letter-spacing: 1px; }
 
-    /* 需求 3：分類 Filter 放大 */
+    /* 分類 Filter 按鈕 */
     .filter-container { margin-top: 12px; border-top: 1px dashed var(--border-color); padding-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
     .filter-chip {
       background: #181818; border: 1px solid var(--border-color); color: #aaa;
@@ -107,13 +107,84 @@
     }
     .filter-chip:hover, .filter-chip.active { background: #fff; color: #000; font-weight: bold; border-color: #fff; }
 
-    /* 需求 3：Edit / Del 按鈕縮細 */
+    /* Edit / Del 按鈕 */
     .manage-btn {
       width: 100%; margin-top: 12px; background: transparent; border: 1px solid rgba(255,255,255,0.08);
       color: #666; font-size: 8px; padding: 4px; cursor: pointer; letter-spacing: 0.8px; text-align: center;
       border-radius: 3px; font-family: 'Space Mono', monospace; transition: all 0.2s;
     }
     .manage-btn:hover { border-color: #888; color: #bbb; background: rgba(255,255,255,0.03); }
+
+    /* 新增：主頁底部高級動態能量進度條 */
+    .bottom-world-progress {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      width: 280px;
+      background: var(--panel-bg);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(20px);
+      padding: 8px 14px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      pointer-events: auto;
+    }
+
+    .progress-text-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 9px;
+      letter-spacing: 1px;
+      font-weight: bold;
+    }
+
+    .progress-title {
+      color: #888888;
+    }
+
+    .progress-val {
+      color: #ffffff;
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+    }
+
+    .energy-bar-bg {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .energy-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #80D8FF 0%, #FFFFFF 50%, #FF5252 100%);
+      border-radius: 3px;
+      transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    }
+
+    /* 能量光效波浪掃過動畫 */
+    .energy-bar-fill::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+      animation: energySweep 2.5s infinite linear;
+    }
+
+    @keyframes energySweep {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
 
     /* Pack Drawer */
     .pack-drawer {
@@ -268,6 +339,7 @@
       .dashboard { top: 60px; left: 15px; width: calc(100vw - 30px); }
       .pack-drawer { top: 310px; left: 15px; width: calc(100vw - 30px); }
       .top-right-controls { top: 15px; right: 15px; }
+      .bottom-world-progress { width: calc(100vw - 40px); bottom: 15px; }
     }
   </style>
 </head>
@@ -298,7 +370,7 @@
     <div class="stat-number" id="city-count">00</div>
     <div class="stat-label">CITIES UNLOCKED</div>
 
-    <!-- Filter Buttons (已放大需求 3) -->
+    <!-- Filter Buttons -->
     <div class="filter-container">
       <div class="filter-chip active" onclick="setFilter('ALL', this)">ALL</div>
       <div class="filter-chip" onclick="setFilter('ASIA', this)">ASIA</div>
@@ -308,8 +380,19 @@
       <div class="filter-chip" onclick="setFilter('OCEANIA', this)">OCEANIA</div>
     </div>
 
-    <!-- Edit/Del 按鈕 (已縮細需求 3) -->
+    <!-- Edit/Del 按鈕 -->
     <button class="manage-btn" onclick="openManageModal()">[ EDIT / DELETE CITIES ]</button>
+  </div>
+
+  <!-- 主頁底部高級能量探索進度條 -->
+  <div class="bottom-world-progress" id="world-progress-bar">
+    <div class="progress-text-row">
+      <span class="progress-title">WORLD EXPLORED</span>
+      <span class="progress-val" id="world-progress-text">0 / 195 COUNTRIES (0.0%)</span>
+    </div>
+    <div class="energy-bar-bg">
+      <div class="energy-bar-fill" id="world-progress-fill"></div>
+    </div>
   </div>
 
   <!-- Pack Drawer -->
@@ -395,23 +478,19 @@
     let currentUser = null;
     let visitedCities = [];
     let currentFilter = 'ALL';
-    let mapMode = '2D'; // '2D' 或 '3D' (球狀投影)
+    let mapMode = '2D';
 
-    /* 需求 2：徹底補齊全球（含全非洲及周邊國家）中文翻譯字典 */
+    const TOTAL_WORLD_COUNTRIES = 195; // 全球國家總數分母
+
     const COUNTRY_CN_NAME = {
-      // 亞洲 / 東亞 / 東南亞
       'JAPAN': '日本', 'CHINA': '中國', 'TAIWAN': '台灣', 'HONG KONG': '香港', 'MACAU': '澳門',
       'SOUTH KOREA': '韓國', 'KOREA': '韓國', 'DEMOCRATIC PEOPLE\'S REPUBLIC OF KOREA': '北韓',
       'THAILAND': '泰國', 'VIETNAM': '越南', 'MALAYSIA': '馬來西亞', 'SINGAPORE': '新加坡',
       'INDONESIA': '印尼', 'PHILIPPINES': '菲律賓', 'CAMBODIA': '柬埔寨', 'LAOS': '寮國', 'MYANMAR': '緬甸',
       'INDIA': '印度', 'PAKISTAN': '巴基斯坦', 'BANGLADESH': '孟加拉', 'SRI LANKA': '斯里蘭卡', 'NEPAL': '尼泊爾',
-      
-      // 美洲 / 大洋洲
       'USA': '美國', 'UNITED STATES': '美國', 'UNITED STATES OF AMERICA': '美國', 'CANADA': '加拿大',
       'MEXICO': '墨西哥', 'BRAZIL': '巴西', 'ARGENTINA': '阿根廷', 'CHILE': '智利', 'COLOMBIA': '哥倫比亞',
       'PERU': '秘魯', 'AUSTRALIA': '澳洲', 'NEW ZEALAND': '紐西蘭', 'FIJI': '斐濟',
-
-      // 需求 2 專用：南非與全非洲國家全面補齊
       'SOUTH AFRICA': '南非', 'NAMIBIA': '納米比亞', 'BOTSWANA': '波札那', 'ZIMBABWE': '辛巴威',
       'MOZAMBIQUE': '莫三比克', 'SWAZILAND': '斯威士蘭', 'ESWATINI': '史瓦帝尼', 'LESOTHO': '萊索托',
       'MADAGASCAR': '馬達加斯加', 'ZAMBIA': '尚比亞', 'ANGOLA': '安哥拉', 'MALAWI': '馬拉威',
@@ -420,8 +499,6 @@
       'EGYPT': '埃及', 'LIBYA': '利比亞', 'TUNISIA': '突尼斯', 'ALGERIA': '阿爾及利亞', 'MOROCCO': '摩洛哥',
       'NIGERIA': '奈及利亞', 'GHANA': '迦納', 'CAMEROON': '喀麥隆', 'SENEGAL': '塞內加爾', 'MALI': '馬利',
       'NIGER': '尼日', 'CHAD': '查德', 'GABON': '加彭', 'CONGO': '剛果', 'DEMOCRATIC REPUBLIC OF THE CONGO': '剛果民主共和國',
-
-      // 歐洲 / 中東
       'UNITED KINGDOM': '英國', 'UK': '英國', 'GREAT BRITAIN': '英國', 'FRANCE': '法國', 'GERMANY': '德國',
       'ITALY': '義大利', 'SWITZERLAND': '瑞士', 'NORWAY': '挪威', 'ICELAND': '冰島', 'FINLAND': '芬蘭',
       'NETHERLANDS': '荷蘭', 'SPAIN': '西班牙', 'PORTUGAL': '葡萄牙', 'GREECE': '希臘', 'TURKEY': '土耳其',
@@ -494,6 +571,16 @@
       return `https://source.unsplash.com/800x600/?${encodeURIComponent(cleaned)},landmark,scenery`;
     }
 
+    /* 計算並更新底部探索世界能量進度條 */
+    function updateWorldProgress() {
+      const visitedCountrySet = new Set(visitedCities.map(c => cleanCountryName(c.country)));
+      const visitedCount = visitedCountrySet.size;
+      const percent = ((visitedCount / TOTAL_WORLD_COUNTRIES) * 100).toFixed(1);
+
+      document.getElementById('world-progress-text').innerText = `${visitedCount} / ${TOTAL_WORLD_COUNTRIES} COUNTRIES (${percent}%)`;
+      document.getElementById('world-progress-fill').style.width = `${Math.min(100, percent)}%`;
+    }
+
     function switchView(view) {
       if (view === 'CARDS') {
         document.getElementById('cards-view').style.display = 'block';
@@ -507,7 +594,6 @@
       }
     }
 
-    /* 需求 5：2D 與 3D 球狀地圖轉換 */
     function setMapMode(mode) {
       mapMode = mode;
       document.getElementById('btn-mode-2d').classList.toggle('active', mode === '2D');
@@ -544,7 +630,6 @@
 
     function closeAddCityModal() { document.getElementById('add-city-modal').style.display = 'none'; }
 
-    /* 需求 4：登入成功後直接靜默設定 ADMIN ON，不彈出 Welcome back Alert */
     async function handleLogin() {
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
@@ -573,7 +658,7 @@
     let targetZoom = 1.0;
     let panOffset = { x: 0, y: 0 };
     let targetPan = { x: 0, y: 0 };
-    let rotation = [0, 0]; // 3D 球體旋轉角度
+    let rotation = [0, 0];
     let isDragging = false;
     let dragStart = { x: 0, y: 0 };
 
@@ -584,13 +669,11 @@
     let projection = d3.geoMercator().scale(width / 6.5).translate([width / 2, height / 1.6]);
     const pathGenerator = d3.geoPath().projection(projection).context(ctx);
 
-    // Canvas Pointer / Touch Event Handlers
     canvas.addEventListener('pointerdown', (e) => {
       isDragging = true;
       dragStart = { x: e.clientX, y: e.clientY };
     });
 
-    // 需求 1：支援手機與 Touch 點擊/滑動交互
     canvas.addEventListener('pointermove', (e) => {
       if (isDragging) {
         const dx = e.clientX - dragStart.x;
@@ -613,10 +696,9 @@
       handlePointerHover(e, false);
     });
 
-    // 需求 1：手機 / 平板點擊一下 (Tap) 立刻彈出國家名
     canvas.addEventListener('pointerup', (e) => {
       isDragging = false;
-      handlePointerHover(e, true); // true 代表點擊觸發
+      handlePointerHover(e, true);
     });
 
     function handlePointerHover(e, isTap = false) {
@@ -651,14 +733,12 @@
             const countryNameCN = COUNTRY_CN_NAME[rawName] || null;
             const displayName = countryNameCN ? `> ${rawName} / ${countryNameCN}` : `> ${rawName}`;
 
-            // 手機點擊 (Tap)：立刻顯示，不延遲 2 秒
             if (isTap || e.pointerType === 'touch') {
               tooltipEl.innerText = displayName;
               tooltipEl.style.left = `${e.clientX}px`;
               tooltipEl.style.top = `${e.clientY}px`;
               tooltipEl.style.display = 'block';
             } else {
-              // 電腦鼠標 Hover：停留超過 2 秒觸發
               tooltipEl.style.display = 'none';
               hoverTimer = setTimeout(() => {
                 tooltipEl.innerText = displayName;
@@ -777,7 +857,6 @@
         ctx.scale(zoomLevel, zoomLevel);
       }
 
-      // 網格點點背景
       ctx.fillStyle = '#181818';
       const gridSize = 24;
       for (let x = -width; x < width * 2; x += gridSize) {
@@ -788,12 +867,10 @@
         }
       }
 
-      /* 需求 5：3D 球體模式畫出 Grok 科技風格外圍輪廓與大氣層輪廓[span_3](start_span)[span_3](end_span) */
       if (mapMode === '3D') {
         const globeRadius = projection.scale();
         const center = projection.translate();
 
-        // 畫出大氣層微光圈
         ctx.beginPath();
         ctx.arc(center[0], center[1], globeRadius + 1.5, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
@@ -830,7 +907,6 @@
           }
         });
 
-        /* 高級淡白微光 Hover / Tap 著燈效果 */
         if (hoveredCountryFeature) {
           ctx.beginPath();
           pathGenerator(hoveredCountryFeature);
@@ -850,7 +926,6 @@
         const pt = projection([city.lng, city.lat]);
         if (!pt) return;
 
-        // 3D 模式下若標點旋轉到地球背面，自動隱藏不渲染
         if (mapMode === '3D') {
           const gdistance = d3.geoDistance([city.lng, city.lat], projection.invert([width / 2, height / 2]));
           if (gdistance > Math.PI / 2) return;
@@ -954,6 +1029,7 @@
       }
 
       document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
+      updateWorldProgress(); // 新增城市時同步更新進度條
       closeAddCityModal();
     }
 
@@ -991,6 +1067,7 @@
 
       visitedCities.splice(index, 1);
       document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
+      updateWorldProgress(); // 刪除城市時同步更新進度條
       renderCityManageList();
     }
 
@@ -1069,6 +1146,7 @@
 
         visitedCities = data;
         document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
+        updateWorldProgress(); // 首次載入數據時同步計算並繪製進度條
       } catch(e){}
     }
   </script>
