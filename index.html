@@ -69,7 +69,7 @@
     }
     .nav-btn:hover, .nav-btn.active { background: #ffffff; color: #000000; }
 
-    /* Controls Bar Top Right (2D/3D Globe Switcher & Admin Login) */
+    /* Top Right Mode Switcher & Admin Login */
     .top-right-controls {
       position: absolute; top: 15px; right: 15px; z-index: 1000;
       display: flex; gap: 8px; align-items: center;
@@ -115,33 +115,35 @@
     }
     .manage-btn:hover { border-color: #888; color: #bbb; background: rgba(255,255,255,0.03); }
 
-    /* 新增：主頁底部高級動態能量進度條 */
+    /* 修復：加長底部進度條容器，嚴格單行不換行，剛好兩行結構 */
     .bottom-world-progress {
       position: absolute;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
-      width: 280px;
+      width: clamp(320px, 42vw, 520px); /* 動態伸縮，縮放時維持充裕長度 */
       background: var(--panel-bg);
       border: 1px solid rgba(255, 255, 255, 0.18);
       backdrop-filter: blur(20px);
-      padding: 8px 14px;
+      padding: 10px 18px;
       border-radius: 20px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.8);
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 7px;
       pointer-events: auto;
     }
 
+    /* 第一行：標題與數據在一行內橫向展開 */
     .progress-text-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 9px;
+      font-size: 10px;
       letter-spacing: 1px;
       font-weight: bold;
+      white-space: nowrap; /* 絕不換行 */
     }
 
     .progress-title {
@@ -153,6 +155,7 @@
       text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
     }
 
+    /* 第二行：能量進度條 */
     .energy-bar-bg {
       width: 100%;
       height: 4px;
@@ -172,7 +175,6 @@
       box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
     }
 
-    /* 能量光效波浪掃過動畫 */
     .energy-bar-fill::after {
       content: '';
       position: absolute;
@@ -339,7 +341,7 @@
       .dashboard { top: 60px; left: 15px; width: calc(100vw - 30px); }
       .pack-drawer { top: 310px; left: 15px; width: calc(100vw - 30px); }
       .top-right-controls { top: 15px; right: 15px; }
-      .bottom-world-progress { width: calc(100vw - 40px); bottom: 15px; }
+      .bottom-world-progress { width: calc(100vw - 30px); bottom: 15px; }
     }
   </style>
 </head>
@@ -384,7 +386,7 @@
     <button class="manage-btn" onclick="openManageModal()">[ EDIT / DELETE CITIES ]</button>
   </div>
 
-  <!-- 主頁底部高級能量探索進度條 -->
+  <!-- 主頁底部高級能量探索進度條（第一行標題+數據，第二行進度條） -->
   <div class="bottom-world-progress" id="world-progress-bar">
     <div class="progress-text-row">
       <span class="progress-title">WORLD EXPLORED</span>
@@ -480,7 +482,7 @@
     let currentFilter = 'ALL';
     let mapMode = '2D';
 
-    const TOTAL_WORLD_COUNTRIES = 195; // 全球國家總數分母
+    const TOTAL_WORLD_COUNTRIES = 195;
 
     const COUNTRY_CN_NAME = {
       'JAPAN': '日本', 'CHINA': '中國', 'TAIWAN': '台灣', 'HONG KONG': '香港', 'MACAU': '澳門',
@@ -1029,7 +1031,7 @@
       }
 
       document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
-      updateWorldProgress(); // 新增城市時同步更新進度條
+      updateWorldProgress();
       closeAddCityModal();
     }
 
@@ -1067,7 +1069,7 @@
 
       visitedCities.splice(index, 1);
       document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
-      updateWorldProgress(); // 刪除城市時同步更新進度條
+      updateWorldProgress();
       renderCityManageList();
     }
 
@@ -1146,7 +1148,7 @@
 
         visitedCities = data;
         document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
-        updateWorldProgress(); // 首次載入數據時同步計算並繪製進度條
+        updateWorldProgress();
       } catch(e){}
     }
   </script>
