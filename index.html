@@ -427,7 +427,7 @@
     let mapMode = '2D';
     let currentTheme = 'noir';
     let isSunlightOn = false;
-    let showCityLabels = true; // 新增：是否顯示城市文字標籤開關
+    let showCityLabels = true;
 
     const TOTAL_WORLD_COUNTRIES = 195;
 
@@ -478,6 +478,15 @@
       'AMERICAS': { core: '#FFFFFF', glow: 'rgba(255, 255, 255, ' },
       'AFRICA': { core: '#FFD740', glow: 'rgba(255, 215, 64, ' },
       'OCEANIA': { core: '#69F0AE', glow: 'rgba(105, 240, 174, ' }
+    };
+
+    /* 各洲中心座標與 Zoom 放放大倍數配置 */
+    const REGION_TARGETS = {
+      'ASIA': { lng: 95, lat: 25, zoom: 2.2 },
+      'EUROPE': { lng: 15, lat: 50, zoom: 3.2 },
+      'AMERICAS': { lng: -90, lat: 20, zoom: 1.8 },
+      'AFRICA': { lng: 20, lat: 0, zoom: 2.0 },
+      'OCEANIA': { lng: 140, lat: -25, zoom: 2.4 }
     };
 
     function cleanCountryName(str) { return str ? str.toString().toUpperCase().replace(/\s+/g, ' ').trim() : 'UNKNOWN'; }
@@ -548,6 +557,7 @@
       }
     }
 
+    /* Filter 升級版：點擊自動縮放並飛躍聚焦到對應大洲 */
     function setFilter(region, element) {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
@@ -557,10 +567,31 @@
         targetZoom = 1.0;
         targetPan = { x: 0, y: 0 };
         if (mapMode === '3D') {
+          rotation = [0, 0];
+          projection.rotate([0, 0]);
           projection.scale(Math.min(width, height) / 2.4);
         }
         document.getElementById('pack-drawer').style.display = 'none';
         return;
+      }
+
+      // 智慧飛躍與 Zoom 近至目標大洲
+      const target = REGION_TARGETS[region];
+      if (target) {
+        if (mapMode === '3D') {
+          rotation = [-target.lng, -target.lat];
+          projection.rotate([rotation[0], rotation[1]]);
+          targetZoom = target.zoom;
+          projection.scale(Math.min(width, height) / 2.4 * targetZoom);
+        } else {
+          targetZoom = target.zoom;
+          // 計算平移中心偏移
+          const centerPt = projection([target.lng, target.lat]);
+          if (centerPt) {
+            targetPan.x = (width / 2 - centerPt[0]) * targetZoom;
+            targetPan.y = (height / 2 - centerPt[1]) * targetZoom;
+          }
+        }
       }
 
       const drawer = document.getElementById('pack-drawer');
@@ -827,11 +858,9 @@
         gradient.addColorStop(0.4, regionTheme.glow + '0.4)');
         gradient.addColorStop(1, regionTheme.glow + '0)');
 
-        /* 渲染光點核心 */
         ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(pt[0], pt[1], glowRadius, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = regionTheme.core; ctx.beginPath(); ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2); ctx.fill();
 
-        /* 判斷開關渲染文字標籤 */
         if (showCityLabels) {
           const labelText = `> ${city.city_name.toUpperCase()}`;
           ctx.font = 'bold 10px Space Mono';
