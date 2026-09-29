@@ -17,10 +17,11 @@
   <style>
     :root {
       --bg-color: #000000;
-      --panel-bg: rgba(12, 12, 12, 0.92);
+      --panel-bg: rgba(18, 18, 20, 0.95);
+      --drawer-bg: rgba(10, 10, 12, 0.96);
       --glyph-white: #ffffff;
       --glyph-red: #D71921;
-      --border-color: rgba(255, 255, 255, 0.15);
+      --border-color: rgba(255, 255, 255, 0.12);
       --text-muted: #888888;
       --canvas-bg: #000000;
       --land-bg: #0d0d0d;
@@ -33,10 +34,11 @@
     /* 沙白黃金主題變數 */
     body.theme-sand {
       --bg-color: #f4efea;
-      --panel-bg: rgba(244, 239, 234, 0.94);
+      --panel-bg: rgba(244, 239, 234, 0.96);
+      --drawer-bg: rgba(235, 228, 220, 0.96);
       --glyph-white: #1a1714;
       --glyph-red: #c83226;
-      --border-color: rgba(0, 0, 0, 0.15);
+      --border-color: rgba(0, 0, 0, 0.12);
       --text-muted: #7a736c;
       --canvas-bg: #e8e2d8;
       --land-bg: #d8cfc0;
@@ -49,10 +51,11 @@
     /* 深海凍土 (Spec X UI) 主題變數 */
     body.theme-specx {
       --bg-color: #030813;
-      --panel-bg: rgba(6, 16, 32, 0.92);
+      --panel-bg: rgba(10, 22, 40, 0.95);
+      --drawer-bg: rgba(6, 14, 26, 0.96);
       --glyph-white: #e1ebf5;
       --glyph-red: #38bdf8;
-      --border-color: rgba(56, 189, 248, 0.25);
+      --border-color: rgba(56, 189, 248, 0.22);
       --text-muted: #64748b;
       --canvas-bg: #020611;
       --land-bg: #7b93ae;
@@ -78,6 +81,14 @@
       color: #ffffff; padding: 6px 14px; font-size: 11px; font-weight: bold;
       letter-spacing: 1.5px; border-radius: 4px; box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(8px); transform: translate(15px, 15px); transition: opacity 0.2s ease; white-space: nowrap;
+    }
+
+    /* Top Navigation Bar Bar Header BackDrop Mask (朦朧頂部擋板) */
+    .top-blur-mask {
+      position: absolute; top: 0; left: 0; width: 100vw; height: 75px; z-index: 900;
+      background: linear-gradient(180deg, var(--bg-color) 40%, rgba(0,0,0,0) 100%);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      pointer-events: none; transition: all 0.3s ease;
     }
 
     /* Top Navigation Bar */
@@ -109,12 +120,18 @@
     .mode-btn:hover, .admin-btn:hover { border-color: var(--glyph-white); }
     .admin-btn.active { border-color: var(--glyph-red); color: var(--glyph-red); }
 
+    /* Dashboard Panel Wrapper */
+    .dashboard-wrapper {
+      position: absolute; top: 15px; left: 15px; z-index: 1000;
+      width: 240px; display: flex; flex-direction: column; gap: 8px;
+      pointer-events: auto;
+    }
+
     /* Dashboard Panel */
     .dashboard {
-      position: absolute; top: 15px; left: 15px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
-      backdrop-filter: blur(16px); padding: 14px; border-radius: 8px; width: 230px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3); pointer-events: auto;
+      backdrop-filter: blur(16px); padding: 14px; border-radius: 12px; width: 100%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
     .brand-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 8px; margin-bottom: 10px; }
     .brand-title { font-size: 11px; letter-spacing: 1.5px; font-weight: bold; }
@@ -125,23 +142,23 @@
     /* Filter Chips */
     .filter-container { margin-top: 12px; border-top: 1px dashed var(--border-color); padding-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
     .filter-chip {
-      background: rgba(0,0,0,0.05); border: 1px solid var(--border-color); color: var(--text-muted);
-      font-size: 10px; padding: 6px 9px; cursor: pointer; border-radius: 4px; letter-spacing: 0.5px; font-weight: bold;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: var(--text-muted);
+      font-size: 10px; padding: 6px 9px; cursor: pointer; border-radius: 6px; letter-spacing: 0.5px; font-weight: bold;
       transition: all 0.15s ease;
     }
     .filter-chip:hover, .filter-chip.active { background: var(--glyph-white); color: var(--bg-color); font-weight: bold; border-color: var(--glyph-white); }
 
-    /* Pack Drawer 抽屜 */
+    /* Pack Drawer 抽屜 (Nested Card 高級二階質感 + 流暢滑出) */
     .pack-drawer {
-      display: none; position: absolute; top: 250px; left: 15px; z-index: 999;
-      background: var(--panel-bg); border: 1px solid var(--border-color);
-      backdrop-filter: blur(20px); border-radius: 8px; width: 230px; max-height: 45vh;
-      overflow-y: auto; padding: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.4);
-      animation: slideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      display: none; width: 100%; background: var(--drawer-bg);
+      border: 1px solid var(--border-color); backdrop-filter: blur(20px);
+      border-radius: 12px; max-height: 45vh; overflow-y: auto; padding: 14px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+      animation: smoothSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-    @keyframes slideDown {
-      from { opacity: 0; transform: translateY(-15px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes smoothSlideDown {
+      from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
     .drawer-title { font-size: 10px; font-weight: bold; color: var(--glyph-white); letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px dashed var(--border-color); padding-bottom: 6px; }
     .drawer-country { font-size: 10px; font-weight: bold; color: var(--glyph-white); margin-top: 8px; }
@@ -149,8 +166,8 @@
 
     .manage-btn {
       width: 100%; margin-top: 12px; background: transparent; border: 1px solid var(--border-color);
-      color: var(--text-muted); font-size: 8px; padding: 4px; cursor: pointer; letter-spacing: 0.8px; text-align: center;
-      border-radius: 3px; font-family: 'Space Mono', monospace; transition: all 0.2s;
+      color: var(--text-muted); font-size: 8px; padding: 6px; cursor: pointer; letter-spacing: 0.8px; text-align: center;
+      border-radius: 6px; font-family: 'Space Mono', monospace; transition: all 0.2s;
     }
     .manage-btn:hover { border-color: var(--glyph-white); color: var(--glyph-white); }
 
@@ -202,8 +219,8 @@
     .btn { flex: 1; padding: 8px; background: var(--glyph-white); color: var(--bg-color); border: none; font-weight: bold; cursor: pointer; font-size: 10px; letter-spacing: 1px; border-radius: 4px; }
     .btn-cancel { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); }
 
-    /* Country Cards View */
-    .cards-view-overlay { display: none; position: fixed; top: 70px; left: 0; width: 100vw; height: calc(100vh - 70px); z-index: 1500; background: var(--canvas-bg); padding: 20px; overflow-y: auto; }
+    /* Country Cards View (優化頂部距離與朦朧隱藏) */
+    .cards-view-overlay { display: none; position: fixed; top: 75px; left: 0; width: 100vw; height: calc(100vh - 75px); z-index: 850; background: var(--canvas-bg); padding: 20px 20px 80px 20px; overflow-y: auto; }
     .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; max-width: 1100px; margin: 0 auto; }
     .flip-card-container { perspective: 1000px; height: 380px; cursor: pointer; }
     .flip-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; }
@@ -219,8 +236,8 @@
     .flag-country-name { font-size: 18px; font-weight: bold; letter-spacing: 2px; color: var(--glyph-white); }
 
     @media (max-width: 600px) {
-      .dashboard { top: 60px; left: 15px; width: calc(100vw - 30px); }
-      .pack-drawer { top: auto; bottom: 85px; left: 15px; width: calc(100vw - 30px); max-height: 35vh; }
+      .dashboard-wrapper { top: 60px; left: 15px; width: calc(100vw - 30px); }
+      .pack-drawer { max-height: 35vh; }
       .top-right-controls { top: 15px; right: 15px; }
       .bottom-world-progress { width: calc(100vw - 30px); bottom: 15px; }
     }
@@ -230,6 +247,9 @@
 
   <!-- Tooltip 懸浮框 -->
   <div class="country-tooltip" id="country-tooltip"></div>
+
+  <!-- 朦朧頂部擋板 (Pic 3 遮罩優化) -->
+  <div class="top-blur-mask"></div>
 
   <!-- Top Navigation Bar -->
   <div class="top-nav">
@@ -243,31 +263,33 @@
     <button class="admin-btn" id="admin-btn" onclick="playClickSound(); openLoginModal()">[ LOGIN ]</button>
   </div>
 
-  <!-- Dashboard Panel -->
-  <div class="dashboard" id="main-dashboard">
-    <div class="brand-header">
-      <span class="brand-title">Travel Map</span>
-      <div class="red-dot"></div>
+  <!-- Dashboard Panel Wrapper (把 Dashboard 與 Drawer 組合成包裹結構) -->
+  <div class="dashboard-wrapper">
+    <div class="dashboard" id="main-dashboard">
+      <div class="brand-header">
+        <span class="brand-title">Travel Map</span>
+        <div class="red-dot"></div>
+      </div>
+      <div class="stat-number" id="city-count">00</div>
+      <div class="stat-label">CITIES UNLOCKED</div>
+
+      <div class="filter-container">
+        <div class="filter-chip active" onclick="playClickSound(); setFilter('ALL', this)">ALL</div>
+        <div class="filter-chip" onclick="playClickSound(); setFilter('ASIA', this)">ASIA</div>
+        <div class="filter-chip" onclick="playClickSound(); setFilter('EUROPE', this)">EUROPE</div>
+        <div class="filter-chip" onclick="playClickSound(); setFilter('AMERICAS', this)">AMERICAS</div>
+        <div class="filter-chip" onclick="playClickSound(); setFilter('AFRICA', this)">AFRICA</div>
+        <div class="filter-chip" onclick="playClickSound(); setFilter('OCEANIA', this)">OCEANIA</div>
+      </div>
+
+      <button class="manage-btn" onclick="playClickSound(); openManageModal()">[ EDIT / DELETE CITIES ]</button>
     </div>
-    <div class="stat-number" id="city-count">00</div>
-    <div class="stat-label">CITIES UNLOCKED</div>
 
-    <div class="filter-container">
-      <div class="filter-chip active" onclick="playClickSound(); setFilter('ALL', this)">ALL</div>
-      <div class="filter-chip" onclick="playClickSound(); setFilter('ASIA', this)">ASIA</div>
-      <div class="filter-chip" onclick="playClickSound(); setFilter('EUROPE', this)">EUROPE</div>
-      <div class="filter-chip" onclick="playClickSound(); setFilter('AMERICAS', this)">AMERICAS</div>
-      <div class="filter-chip" onclick="playClickSound(); setFilter('AFRICA', this)">AFRICA</div>
-      <div class="filter-chip" onclick="playClickSound(); setFilter('OCEANIA', this)">OCEANIA</div>
+    <!-- Filter 抽屜選單 (Pack Drawer) 順滑流暢滑出且雙色階質感 -->
+    <div class="pack-drawer" id="pack-drawer">
+      <div class="drawer-title" id="drawer-title">REGION // PACK</div>
+      <div id="drawer-content"></div>
     </div>
-
-    <button class="manage-btn" onclick="playClickSound(); openManageModal()">[ EDIT / DELETE CITIES ]</button>
-  </div>
-
-  <!-- Filter 抽屜選單 (Pack Drawer) -->
-  <div class="pack-drawer" id="pack-drawer">
-    <div class="drawer-title" id="drawer-title">REGION // PACK</div>
-    <div id="drawer-content"></div>
   </div>
 
   <!-- 底部探索進度條 -->
@@ -490,7 +512,7 @@
       'OCEANIA': { lng: 174.7633, lat: -36.8485, zoom: 1.8 }   // 奧克蘭
     };
 
-    // 平滑飛躍動畫狀態變數 (Lerp Interpolation)
+    // 平滑飛躍動畫狀態變數
     let currentCenter = [0, 20];
     let targetCenter = [0, 20];
     let currentScale = 1.0;
@@ -564,7 +586,7 @@
       }
     }
 
-    /* 平滑鏡頭飛躍控制 Filter */
+    /* 平滑鏡頭飛躍與抽屜展開 */
     function setFilter(region, element) {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
@@ -577,14 +599,14 @@
       targetCenter = [target.lng, target.lat];
       targetScale = target.zoom;
 
-      if (region === 'ALL') {
-        document.getElementById('pack-drawer').style.display = 'none';
-        return;
-      }
-
       const drawer = document.getElementById('pack-drawer');
       const drawerTitle = document.getElementById('drawer-title');
       const drawerContent = document.getElementById('drawer-content');
+
+      if (region === 'ALL') {
+        drawer.style.display = 'none';
+        return;
+      }
 
       drawerTitle.innerText = `${region} // EXPLORED`;
       drawerContent.innerHTML = '';
@@ -611,7 +633,11 @@
         });
       }
 
+      // 重設動畫並顯現
       drawer.style.display = 'block';
+      drawer.style.animation = 'none';
+      drawer.offsetHeight; // 強制重繪
+      drawer.style.animation = 'smoothSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards';
     }
 
     function applySettingMode(mode) {
