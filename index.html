@@ -26,6 +26,7 @@
       --land-bg: #0d0d0d;
       --stroke-color: #262626;
       --grid-color: #181818;
+      --label-color: #ffffff;
     }
 
     /* 沙白黃金主題變數 */
@@ -40,9 +41,10 @@
       --land-bg: #d8cfc0;
       --stroke-color: #b5a895;
       --grid-color: #cbc1b1;
+      --label-color: #1a1714;
     }
 
-    /* 深海凍土 (Spec X UI) 主題變數 */
+    /* 深海凍土 (Spec X UI) 主題變數 (優化對比度) */
     body.theme-specx {
       --bg-color: #030813;
       --panel-bg: rgba(6, 16, 32, 0.92);
@@ -51,9 +53,10 @@
       --border-color: rgba(56, 189, 248, 0.25);
       --text-muted: #64748b;
       --canvas-bg: #020611;
-      --land-bg: #bcd0e5;
-      --stroke-color: #475569;
+      --land-bg: #7b93ae;
+      --stroke-color: #1e293b;
       --grid-color: #0f172a;
+      --label-color: #040c1a;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Mono', monospace, -apple-system, "PingFang HK", "Microsoft JhengHei"; user-select: none; }
@@ -148,7 +151,7 @@
     }
     .manage-btn:hover { border-color: var(--glyph-white); color: var(--glyph-white); }
 
-    /* 底部能量進度條 */
+    /* 底部探索進度條 */
     .bottom-world-progress {
       position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 1000;
       width: clamp(320px, 42vw, 520px); background: var(--panel-bg);
@@ -393,7 +396,6 @@
 
     const TOTAL_WORLD_COUNTRIES = 195;
 
-    /* 100% 完整地標庫圖典 */
     const STATIC_LANDMARKS = {
       'CANADA': 'https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=800&auto=format&fit=crop',
       'CHINA': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800&auto=format&fit=crop',
@@ -419,7 +421,6 @@
       'MALDIVES': 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&auto=format&fit=crop'
     };
 
-    /* 100% 國旗代碼映射 */
     const COUNTRY_FLAG_CODES = {
       'CANADA': 'ca', 'CHINA': 'cn', 'JAPAN': 'jp', 'NEW ZEALAND': 'nz', 'THAILAND': 'th', 'TAIWAN': 'tw',
       'USA': 'us', 'UNITED STATES': 'us', 'FIJI': 'fj', 'AUSTRALIA': 'au', 'MACAU': 'mo', 'HONG KONG': 'hk',
@@ -428,7 +429,6 @@
       'NETHERLANDS': 'nl', 'MALDIVES': 'mv', 'UNITED KINGDOM': 'gb', 'UK': 'gb', 'FRANCE': 'fr'
     };
 
-    /* 國家全量雙語對照表 */
     const COUNTRY_CN_NAME = {
       'JAPAN': '日本', 'CHINA': '中國', 'TAIWAN': '台灣', 'HONG KONG': '香港', 'MACAU': '澳門',
       'SOUTH KOREA': '韓國', 'KOREA': '韓國', 'THAILAND': '泰國', 'VIETNAM': '越南', 'MALAYSIA': '馬來西亞', 'SINGAPORE': '新加坡',
@@ -437,10 +437,9 @@
       'ICELAND': '冰島', 'FINLAND': '芬蘭', 'NETHERLANDS': '荷蘭', 'MALDIVES': '馬爾地夫', 'FIJI': '斐濟'
     };
 
-    /* 五大洲獨立霓虹配色表 */
     const REGION_COLORS = {
       'ASIA': { core: '#FF5252', glow: 'rgba(255, 82, 82, ' },
-      'EUROPE': { core: '#80D8FF', glow: 'rgba(128, 216, 255, ' },
+      'EUROPE': { core: '#00E5FF', glow: 'rgba(0, 229, 255, ' },
       'AMERICAS': { core: '#FFFFFF', glow: 'rgba(255, 255, 255, ' },
       'AFRICA': { core: '#FFD740', glow: 'rgba(255, 215, 64, ' },
       'OCEANIA': { core: '#69F0AE', glow: 'rgba(105, 240, 174, ' }
@@ -673,6 +672,7 @@
       const landBg = styles.getPropertyValue('--land-bg').trim();
       const strokeColor = styles.getPropertyValue('--stroke-color').trim();
       const gridColor = styles.getPropertyValue('--grid-color').trim();
+      const labelTextColor = styles.getPropertyValue('--label-color').trim();
 
       ctx.fillStyle = canvasBg; ctx.fillRect(0, 0, width, height);
       ctx.save();
@@ -704,9 +704,9 @@
           const countryName = (feature.properties.name || '').toUpperCase();
           if (visitedCountrySet.has(countryName)) {
             ctx.beginPath(); pathGenerator(feature);
-            ctx.fillStyle = currentTheme === 'specx' ? 'rgba(56, 189, 248, 0.2)' : (currentTheme === 'sand' ? 'rgba(200, 50, 38, 0.15)' : 'rgba(255, 255, 255, 0.08)');
+            ctx.fillStyle = currentTheme === 'specx' ? 'rgba(56, 189, 248, 0.25)' : (currentTheme === 'sand' ? 'rgba(200, 50, 38, 0.15)' : 'rgba(255, 255, 255, 0.08)');
             ctx.fill();
-            ctx.strokeStyle = currentTheme === 'specx' ? 'rgba(56, 189, 248, 0.6)' : (currentTheme === 'sand' ? 'rgba(200, 50, 38, 0.5)' : 'rgba(255, 255, 255, 0.3)');
+            ctx.strokeStyle = currentTheme === 'specx' ? 'rgba(56, 189, 248, 0.7)' : (currentTheme === 'sand' ? 'rgba(200, 50, 38, 0.5)' : 'rgba(255, 255, 255, 0.3)');
             ctx.stroke();
           }
         });
@@ -726,7 +726,7 @@
         }
       }
 
-      /* 重置點燈顏色：按五大洲獨立亮點 */
+      /* 渲染點燈與高清文字標籤 (加強描邊防撞色) */
       visitedCities.forEach(city => {
         const regionKey = cleanCountryName(city.region);
         if (currentFilter !== 'ALL' && regionKey !== currentFilter) return;
@@ -745,8 +745,15 @@
         ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(pt[0], pt[1], glowRadius, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = regionTheme.core; ctx.beginPath(); ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2); ctx.fill();
 
-        ctx.fillStyle = styles.getPropertyValue('--glyph-white').trim();
-        ctx.font = '10px Space Mono'; ctx.fillText(`> ${city.city_name.toUpperCase()}`, pt[0] + 8, pt[1] + 3);
+        // 黑色高對比描邊 + 動態主題字體色，徹底解決撞色
+        const labelText = `> ${city.city_name.toUpperCase()}`;
+        ctx.font = 'bold 10px Space Mono';
+        ctx.strokeStyle = currentTheme === 'specx' ? 'rgba(255, 255, 255, 0.9)' : '#000000';
+        ctx.lineWidth = 2.5;
+        ctx.strokeText(labelText, pt[0] + 8, pt[1] + 3);
+
+        ctx.fillStyle = labelTextColor;
+        ctx.fillText(labelText, pt[0] + 8, pt[1] + 3);
       });
 
       ctx.restore();
