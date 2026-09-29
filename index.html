@@ -33,7 +33,7 @@
     }
     #world-canvas:active { cursor: grabbing; }
 
-    /* Hover 2秒跳出的國家 Tooltip 懸浮框 (中英雙語) */
+    /* Tooltip 懸浮框 */
     .country-tooltip {
       position: absolute;
       display: none;
@@ -42,7 +42,7 @@
       background: rgba(15, 15, 15, 0.92);
       border: 1px solid rgba(255, 255, 255, 0.4);
       color: #ffffff;
-      padding: 6px 12px;
+      padding: 6px 14px;
       font-size: 11px;
       font-weight: bold;
       letter-spacing: 1.5px;
@@ -69,11 +69,27 @@
     }
     .nav-btn:hover, .nav-btn.active { background: #ffffff; color: #000000; }
 
+    /* Controls Bar Top Right (2D/3D Globe Switcher & Admin Login) */
+    .top-right-controls {
+      position: absolute; top: 15px; right: 15px; z-index: 1000;
+      display: flex; gap: 8px; align-items: center;
+    }
+
+    .mode-btn, .admin-btn {
+      background: var(--panel-bg); border: 1px solid var(--border-color);
+      color: var(--glyph-white); padding: 8px 12px; font-size: 9px;
+      cursor: pointer; backdrop-filter: blur(12px); border-radius: 4px;
+      letter-spacing: 1px; transition: all 0.2s; font-family: 'Space Mono', monospace;
+    }
+    .mode-btn:hover, .admin-btn:hover { border-color: var(--glyph-white); background: #1f1f1f; }
+    .mode-btn.active { border-color: #ffffff; background: #ffffff; color: #000000; font-weight: bold; }
+    .admin-btn.active { border-color: var(--glyph-red); color: var(--glyph-red); }
+
     /* Dashboard Panel */
     .dashboard {
       position: absolute; top: 15px; left: 15px; z-index: 1000;
       background: var(--panel-bg); border: 1px solid var(--border-color);
-      backdrop-filter: blur(16px); padding: 14px; border-radius: 8px; width: 220px;
+      backdrop-filter: blur(16px); padding: 14px; border-radius: 8px; width: 230px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.9); pointer-events: auto;
     }
     .brand-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 8px; margin-bottom: 10px; }
@@ -82,27 +98,28 @@
     .stat-number { font-size: 28px; font-weight: bold; }
     .stat-label { font-size: 9px; color: var(--text-muted); letter-spacing: 1px; }
 
-    /* Filter Chips */
-    .filter-container { margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+    /* 需求 3：分類 Filter 放大 */
+    .filter-container { margin-top: 12px; border-top: 1px dashed var(--border-color); padding-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
     .filter-chip {
-      background: #151515; border: 1px solid var(--border-color); color: #888;
-      font-size: 8px; padding: 4px 6px; cursor: pointer; border-radius: 2px; letter-spacing: 0.5px;
+      background: #181818; border: 1px solid var(--border-color); color: #aaa;
+      font-size: 10px; padding: 6px 9px; cursor: pointer; border-radius: 4px; letter-spacing: 0.5px; font-weight: bold;
+      transition: all 0.15s ease;
     }
-    .filter-chip:hover, .filter-chip.active { background: #fff; color: #000; font-weight: bold; }
+    .filter-chip:hover, .filter-chip.active { background: #fff; color: #000; font-weight: bold; border-color: #fff; }
 
-    /* Manage Button */
+    /* 需求 3：Edit / Del 按鈕縮細 */
     .manage-btn {
-      width: 100%; margin-top: 10px; background: transparent; border: 1px solid var(--border-color);
-      color: #aaa; font-size: 9px; padding: 6px; cursor: pointer; letter-spacing: 1px; text-align: center;
-      border-radius: 4px; font-family: 'Space Mono', monospace; transition: all 0.2s;
+      width: 100%; margin-top: 12px; background: transparent; border: 1px solid rgba(255,255,255,0.08);
+      color: #666; font-size: 8px; padding: 4px; cursor: pointer; letter-spacing: 0.8px; text-align: center;
+      border-radius: 3px; font-family: 'Space Mono', monospace; transition: all 0.2s;
     }
-    .manage-btn:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.05); }
+    .manage-btn:hover { border-color: #888; color: #bbb; background: rgba(255,255,255,0.03); }
 
     /* Pack Drawer */
     .pack-drawer {
-      display: none; position: absolute; top: 220px; left: 15px; z-index: 999;
+      display: none; position: absolute; top: 250px; left: 15px; z-index: 999;
       background: rgba(15, 15, 15, 0.95); border: 1px solid var(--border-color);
-      backdrop-filter: blur(20px); border-radius: 8px; width: 220px; max-height: 45vh;
+      backdrop-filter: blur(20px); border-radius: 8px; width: 230px; max-height: 40vh;
       overflow-y: auto; padding: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.9);
       animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -110,17 +127,6 @@
     .drawer-title { font-size: 10px; font-weight: bold; color: var(--glyph-white); letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #222; padding-bottom: 4px; }
     .drawer-country { font-size: 10px; font-weight: bold; color: #fff; margin-top: 8px; }
     .drawer-cities { font-size: 9px; color: #777; margin-bottom: 6px; line-height: 1.4; }
-
-    /* Admin Login Button */
-    .admin-btn {
-      position: absolute; top: 15px; right: 15px; z-index: 1000;
-      background: var(--panel-bg); border: 1px solid var(--border-color);
-      color: var(--glyph-white); padding: 8px 12px; font-size: 9px;
-      cursor: pointer; backdrop-filter: blur(12px); border-radius: 4px;
-      letter-spacing: 1px; transition: all 0.2s; font-family: 'Space Mono', monospace;
-    }
-    .admin-btn:hover { border-color: var(--glyph-white); background: #1f1f1f; }
-    .admin-btn.active { border-color: var(--glyph-red); color: var(--glyph-red); }
 
     /* Modals */
     .modal-overlay {
@@ -260,8 +266,8 @@
 
     @media (max-width: 600px) {
       .dashboard { top: 60px; left: 15px; width: calc(100vw - 30px); }
-      .pack-drawer { top: 280px; left: 15px; width: calc(100vw - 30px); }
-      .admin-btn { top: 15px; right: 15px; }
+      .pack-drawer { top: 310px; left: 15px; width: calc(100vw - 30px); }
+      .top-right-controls { top: 15px; right: 15px; }
     }
   </style>
 </head>
@@ -276,6 +282,13 @@
     <button class="nav-btn" id="btn-cards" onclick="switchView('CARDS')">[ COUNTRY CARDS ]</button>
   </div>
 
+  <!-- Top Right Mode Switcher & Admin Login -->
+  <div class="top-right-controls">
+    <button class="mode-btn active" id="btn-mode-2d" onclick="setMapMode('2D')">2D MAP</button>
+    <button class="mode-btn" id="btn-mode-3d" onclick="setMapMode('3D')">3D GLOBE</button>
+    <button class="admin-btn" id="admin-btn" onclick="openLoginModal()">[ LOGIN ]</button>
+  </div>
+
   <!-- Dashboard Panel -->
   <div class="dashboard" id="main-dashboard">
     <div class="brand-header">
@@ -285,7 +298,7 @@
     <div class="stat-number" id="city-count">00</div>
     <div class="stat-label">CITIES UNLOCKED</div>
 
-    <!-- Filter Buttons -->
+    <!-- Filter Buttons (已放大需求 3) -->
     <div class="filter-container">
       <div class="filter-chip active" onclick="setFilter('ALL', this)">ALL</div>
       <div class="filter-chip" onclick="setFilter('ASIA', this)">ASIA</div>
@@ -295,6 +308,7 @@
       <div class="filter-chip" onclick="setFilter('OCEANIA', this)">OCEANIA</div>
     </div>
 
+    <!-- Edit/Del 按鈕 (已縮細需求 3) -->
     <button class="manage-btn" onclick="openManageModal()">[ EDIT / DELETE CITIES ]</button>
   </div>
 
@@ -303,9 +317,6 @@
     <div class="drawer-title" id="drawer-title">REGION // PACK</div>
     <div id="drawer-content"></div>
   </div>
-
-  <!-- Admin Login Button -->
-  <button class="admin-btn" id="admin-btn" onclick="openLoginModal()">[ LOGIN ]</button>
 
   <!-- Login Modal -->
   <div class="modal-overlay" id="login-modal">
@@ -384,20 +395,39 @@
     let currentUser = null;
     let visitedCities = [];
     let currentFilter = 'ALL';
+    let mapMode = '2D'; // '2D' 或 '3D' (球狀投影)
 
-    /* 擴充版全球國家中文對照字典 */
+    /* 需求 2：徹底補齊全球（含全非洲及周邊國家）中文翻譯字典 */
     const COUNTRY_CN_NAME = {
+      // 亞洲 / 東亞 / 東南亞
       'JAPAN': '日本', 'CHINA': '中國', 'TAIWAN': '台灣', 'HONG KONG': '香港', 'MACAU': '澳門',
-      'SOUTH KOREA': '韓國', 'KOREA': '韓國', 'THAILAND': '泰國', 'VIETNAM': '越南', 'MALAYSIA': '馬來西亞',
-      'SINGAPORE': '新加坡', 'USA': '美國', 'UNITED STATES': '美國', 'UNITED STATES OF AMERICA': '美國',
-      'CANADA': '加拿大', 'UNITED KINGDOM': '英國', 'UK': '英國', 'GREAT BRITAIN': '英國',
-      'FRANCE': '法國', 'GERMANY': '德國', 'ITALY': '義大利', 'SWITZERLAND': '瑞士', 'NORWAY': '挪威',
-      'ICELAND': '冰島', 'FINLAND': '芬蘭', 'NETHERLANDS': '荷蘭', 'AUSTRALIA': '澳洲', 'NEW ZEALAND': '紐西蘭',
-      'FIJI': '斐濟', 'MALDIVES': '馬爾地夫', '梵蒂岡': '梵蒂岡', 'VATICAN CITY': '梵蒂岡', 'SPAIN': '西班牙',
-      'PORTUGAL': '葡萄牙', 'GREECE': '希臘', 'EGYPT': '埃及', 'TURKEY': '土耳其', 'BRAZIL': '巴西',
-      'ARGENTINA': '阿根廷', 'MEXICO': '墨西哥', 'RUSSIA': '俄羅斯', 'INDIA': '印度', 'INDONESIA': '印尼',
-      'PHILIPPINES': '菲律賓', 'SOUTH AFRICA': '南非', 'SWEDEN': '瑞典', 'DENMARK': '丹麥', 'AUSTRIA': '奧地利',
-      'BELGIUM': '比利時', 'POLAND': '波蘭', 'CZECH REPUBLIC': '捷克', 'CZECHIA': '捷克', 'HUNGARY': '匈牙利'
+      'SOUTH KOREA': '韓國', 'KOREA': '韓國', 'DEMOCRATIC PEOPLE\'S REPUBLIC OF KOREA': '北韓',
+      'THAILAND': '泰國', 'VIETNAM': '越南', 'MALAYSIA': '馬來西亞', 'SINGAPORE': '新加坡',
+      'INDONESIA': '印尼', 'PHILIPPINES': '菲律賓', 'CAMBODIA': '柬埔寨', 'LAOS': '寮國', 'MYANMAR': '緬甸',
+      'INDIA': '印度', 'PAKISTAN': '巴基斯坦', 'BANGLADESH': '孟加拉', 'SRI LANKA': '斯里蘭卡', 'NEPAL': '尼泊爾',
+      
+      // 美洲 / 大洋洲
+      'USA': '美國', 'UNITED STATES': '美國', 'UNITED STATES OF AMERICA': '美國', 'CANADA': '加拿大',
+      'MEXICO': '墨西哥', 'BRAZIL': '巴西', 'ARGENTINA': '阿根廷', 'CHILE': '智利', 'COLOMBIA': '哥倫比亞',
+      'PERU': '秘魯', 'AUSTRALIA': '澳洲', 'NEW ZEALAND': '紐西蘭', 'FIJI': '斐濟',
+
+      // 需求 2 專用：南非與全非洲國家全面補齊
+      'SOUTH AFRICA': '南非', 'NAMIBIA': '納米比亞', 'BOTSWANA': '波札那', 'ZIMBABWE': '辛巴威',
+      'MOZAMBIQUE': '莫三比克', 'SWAZILAND': '斯威士蘭', 'ESWATINI': '史瓦帝尼', 'LESOTHO': '萊索托',
+      'MADAGASCAR': '馬達加斯加', 'ZAMBIA': '尚比亞', 'ANGOLA': '安哥拉', 'MALAWI': '馬拉威',
+      'TANZANIA': '坦尚尼亞', 'UNITED REPUBLIC OF TANZANIA': '坦尚尼亞', 'KENYA': '肯亞', 'UGANDA': '烏干達',
+      'RWANDA': '盧安達', 'ETHIOPIA': '衣索比亞', 'SOMALIA': '索馬利亞', 'SUDAN': '蘇丹', 'SOUTH SUDAN': '南蘇丹',
+      'EGYPT': '埃及', 'LIBYA': '利比亞', 'TUNISIA': '突尼斯', 'ALGERIA': '阿爾及利亞', 'MOROCCO': '摩洛哥',
+      'NIGERIA': '奈及利亞', 'GHANA': '迦納', 'CAMEROON': '喀麥隆', 'SENEGAL': '塞內加爾', 'MALI': '馬利',
+      'NIGER': '尼日', 'CHAD': '查德', 'GABON': '加彭', 'CONGO': '剛果', 'DEMOCRATIC REPUBLIC OF THE CONGO': '剛果民主共和國',
+
+      // 歐洲 / 中東
+      'UNITED KINGDOM': '英國', 'UK': '英國', 'GREAT BRITAIN': '英國', 'FRANCE': '法國', 'GERMANY': '德國',
+      'ITALY': '義大利', 'SWITZERLAND': '瑞士', 'NORWAY': '挪威', 'ICELAND': '冰島', 'FINLAND': '芬蘭',
+      'NETHERLANDS': '荷蘭', 'SPAIN': '西班牙', 'PORTUGAL': '葡萄牙', 'GREECE': '希臘', 'TURKEY': '土耳其',
+      'RUSSIA': '俄羅斯', 'SWEDEN': '瑞典', 'DENMARK': '丹麥', 'AUSTRIA': '奧地利', 'BELGIUM': '比利時',
+      'POLAND': '波蘭', 'CZECH REPUBLIC': '捷克', 'CZECHIA': '捷克', 'HUNGARY': '匈牙利', 'MALDIVES': '馬爾地夫',
+      '梵蒂岡': '梵蒂岡', 'VATICAN CITY': '梵蒂岡', 'UNITED ARAB EMIRATES': '阿聯酋', 'SAUDI ARABIA': '沙烏地阿拉伯'
     };
 
     const STATIC_LANDMARKS = {
@@ -477,6 +507,20 @@
       }
     }
 
+    /* 需求 5：2D 與 3D 球狀地圖轉換 */
+    function setMapMode(mode) {
+      mapMode = mode;
+      document.getElementById('btn-mode-2d').classList.toggle('active', mode === '2D');
+      document.getElementById('btn-mode-3d').classList.toggle('active', mode === '3D');
+
+      if (mode === '3D') {
+        projection = d3.geoOrthographic().scale(Math.min(width, height) / 2.4).translate([width / 2, height / 2]).clipAngle(90);
+      } else {
+        projection = d3.geoMercator().scale(width / 6.5).translate([width / 2, height / 1.6]);
+      }
+      pathGenerator.projection(projection);
+    }
+
     function openLoginModal() { document.getElementById('login-modal').style.display = 'flex'; }
     function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
     function openManageModal() { renderCityManageList(); document.getElementById('manage-modal').style.display = 'flex'; }
@@ -500,6 +544,7 @@
 
     function closeAddCityModal() { document.getElementById('add-city-modal').style.display = 'none'; }
 
+    /* 需求 4：登入成功後直接靜默設定 ADMIN ON，不彈出 Welcome back Alert */
     async function handleLogin() {
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
@@ -514,7 +559,6 @@
         document.getElementById('admin-btn').innerText = '[ ADMIN ON ]';
         document.getElementById('admin-btn').classList.add('active');
         closeLoginModal();
-        alert('WELCOME BACK, ADMIN.');
       }
     }
 
@@ -529,6 +573,7 @@
     let targetZoom = 1.0;
     let panOffset = { x: 0, y: 0 };
     let targetPan = { x: 0, y: 0 };
+    let rotation = [0, 0]; // 3D 球體旋轉角度
     let isDragging = false;
     let dragStart = { x: 0, y: 0 };
 
@@ -536,26 +581,53 @@
     let hoverTimer = null;
     const tooltipEl = document.getElementById('country-tooltip');
 
-    const projection = d3.geoMercator().scale(width / 6.5).translate([width / 2, height / 1.6]);
+    let projection = d3.geoMercator().scale(width / 6.5).translate([width / 2, height / 1.6]);
     const pathGenerator = d3.geoPath().projection(projection).context(ctx);
 
-    canvas.addEventListener('mousedown', (e) => {
+    // Canvas Pointer / Touch Event Handlers
+    canvas.addEventListener('pointerdown', (e) => {
       isDragging = true;
-      dragStart = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
+      dragStart = { x: e.clientX, y: e.clientY };
     });
 
-    canvas.addEventListener('mousemove', (e) => {
+    // 需求 1：支援手機與 Touch 點擊/滑動交互
+    canvas.addEventListener('pointermove', (e) => {
       if (isDragging) {
-        panOffset.x = e.clientX - dragStart.x;
-        panOffset.y = e.clientY - dragStart.y;
-        targetPan.x = panOffset.x;
-        targetPan.y = panOffset.y;
+        const dx = e.clientX - dragStart.x;
+        const dy = e.clientY - dragStart.y;
+
+        if (mapMode === '3D') {
+          rotation[0] += dx * 0.4;
+          rotation[1] -= dy * 0.4;
+          projection.rotate([rotation[0], rotation[1]]);
+        } else {
+          panOffset.x += dx;
+          panOffset.y += dy;
+          targetPan.x = panOffset.x;
+          targetPan.y = panOffset.y;
+        }
+        dragStart = { x: e.clientX, y: e.clientY };
         return;
       }
 
+      handlePointerHover(e, false);
+    });
+
+    // 需求 1：手機 / 平板點擊一下 (Tap) 立刻彈出國家名
+    canvas.addEventListener('pointerup', (e) => {
+      isDragging = false;
+      handlePointerHover(e, true); // true 代表點擊觸發
+    });
+
+    function handlePointerHover(e, isTap = false) {
       const rect = canvas.getBoundingClientRect();
-      const mouseX = (e.clientX - rect.left - panOffset.x) / zoomLevel;
-      const mouseY = (e.clientY - rect.top - panOffset.y) / zoomLevel;
+      let mouseX = e.clientX - rect.left;
+      let mouseY = e.clientY - rect.top;
+
+      if (mapMode === '2D') {
+        mouseX = (mouseX - panOffset.x) / zoomLevel;
+        mouseY = (mouseY - panOffset.y) / zoomLevel;
+      }
 
       const coords = projection.invert([mouseX, mouseY]);
 
@@ -570,23 +642,33 @@
           }
         }
 
-        if (found !== hoveredCountryFeature) {
+        if (found !== hoveredCountryFeature || isTap) {
           hoveredCountryFeature = found;
           clearTimeout(hoverTimer);
-          tooltipEl.style.display = 'none';
 
           if (hoveredCountryFeature) {
             const rawName = (hoveredCountryFeature.properties.name || '').toUpperCase().trim();
             const countryNameCN = COUNTRY_CN_NAME[rawName] || null;
-            
-            // 2 秒後顯示中英雙語懸浮框
-            hoverTimer = setTimeout(() => {
-              const displayName = countryNameCN ? `> ${rawName} / ${countryNameCN}` : `> ${rawName}`;
+            const displayName = countryNameCN ? `> ${rawName} / ${countryNameCN}` : `> ${rawName}`;
+
+            // 手機點擊 (Tap)：立刻顯示，不延遲 2 秒
+            if (isTap || e.pointerType === 'touch') {
               tooltipEl.innerText = displayName;
               tooltipEl.style.left = `${e.clientX}px`;
               tooltipEl.style.top = `${e.clientY}px`;
               tooltipEl.style.display = 'block';
-            }, 2000);
+            } else {
+              // 電腦鼠標 Hover：停留超過 2 秒觸發
+              tooltipEl.style.display = 'none';
+              hoverTimer = setTimeout(() => {
+                tooltipEl.innerText = displayName;
+                tooltipEl.style.left = `${e.clientX}px`;
+                tooltipEl.style.top = `${e.clientY}px`;
+                tooltipEl.style.display = 'block';
+              }, 2000);
+            }
+          } else {
+            tooltipEl.style.display = 'none';
           }
         } else if (hoveredCountryFeature && tooltipEl.style.display === 'block') {
           tooltipEl.style.left = `${e.clientX}px`;
@@ -597,19 +679,27 @@
         clearTimeout(hoverTimer);
         tooltipEl.style.display = 'none';
       }
-    });
-
-    window.addEventListener('mouseup', () => { isDragging = false; });
+    }
 
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
       const delta = e.deltaY < 0 ? 0.05 : -0.05;
       targetZoom = Math.max(0.6, Math.min(targetZoom + delta, 6.0));
+
+      if (mapMode === '3D') {
+        const baseScale = Math.min(width, height) / 2.4;
+        projection.scale(baseScale * targetZoom);
+      }
     }, { passive: false });
 
     window.addEventListener('resize', () => {
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
+      if (mapMode === '3D') {
+        projection.scale(Math.min(width, height) / 2.4 * targetZoom).translate([width / 2, height / 2]);
+      } else {
+        projection.translate([width / 2, height / 1.6]);
+      }
     });
 
     function setFilter(region, element) {
@@ -620,6 +710,7 @@
       if (region === 'ALL') {
         targetZoom = 1.0;
         targetPan = { x: 0, y: 0 };
+        if (mapMode === '3D') projection.scale(Math.min(width, height) / 2.4);
       }
 
       const drawer = document.getElementById('pack-drawer');
@@ -671,17 +762,22 @@
     function renderCanvas() {
       pulseTime += 0.03;
 
-      zoomLevel += (targetZoom - zoomLevel) * 0.1;
-      panOffset.x += (targetPan.x - panOffset.x) * 0.1;
-      panOffset.y += (targetPan.y - panOffset.y) * 0.1;
+      if (mapMode === '2D') {
+        zoomLevel += (targetZoom - zoomLevel) * 0.1;
+        panOffset.x += (targetPan.x - panOffset.x) * 0.1;
+        panOffset.y += (targetPan.y - panOffset.y) * 0.1;
+      }
 
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
 
       ctx.save();
-      ctx.translate(panOffset.x, panOffset.y);
-      ctx.scale(zoomLevel, zoomLevel);
+      if (mapMode === '2D') {
+        ctx.translate(panOffset.x, panOffset.y);
+        ctx.scale(zoomLevel, zoomLevel);
+      }
 
+      // 網格點點背景
       ctx.fillStyle = '#181818';
       const gridSize = 24;
       for (let x = -width; x < width * 2; x += gridSize) {
@@ -692,15 +788,33 @@
         }
       }
 
+      /* 需求 5：3D 球體模式畫出 Grok 科技風格外圍輪廓與大氣層輪廓[span_3](start_span)[span_3](end_span) */
+      if (mapMode === '3D') {
+        const globeRadius = projection.scale();
+        const center = projection.translate();
+
+        // 畫出大氣層微光圈
+        ctx.beginPath();
+        ctx.arc(center[0], center[1], globeRadius + 1.5, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(center[0], center[1], globeRadius, 0, Math.PI * 2);
+        ctx.fillStyle = '#050505';
+        ctx.fill();
+      }
+
       if (window.topojson && worldGeoData) {
         const countries = topojson.feature(worldGeoData, worldGeoData.objects.countries);
         
         ctx.beginPath();
         pathGenerator(countries);
-        ctx.fillStyle = '#090909';
+        ctx.fillStyle = '#0a0a0a';
         ctx.fill();
         ctx.strokeStyle = '#222222';
-        ctx.lineWidth = 0.8 / zoomLevel;
+        ctx.lineWidth = 0.8 / (mapMode === '2D' ? zoomLevel : 1);
         ctx.stroke();
 
         const visitedCountrySet = new Set(visitedCities.map(c => cleanCountryName(c.country)));
@@ -709,21 +823,21 @@
           if (visitedCountrySet.has(countryName)) {
             ctx.beginPath();
             pathGenerator(feature);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
             ctx.fill();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
             ctx.stroke();
           }
         });
 
-        /* 高級淡白微光 Hover 著燈效果 */
+        /* 高級淡白微光 Hover / Tap 著燈效果 */
         if (hoveredCountryFeature) {
           ctx.beginPath();
           pathGenerator(hoveredCountryFeature);
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
           ctx.fill();
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-          ctx.lineWidth = 1.2 / zoomLevel;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+          ctx.lineWidth = 1.2;
           ctx.stroke();
         }
       }
@@ -736,9 +850,15 @@
         const pt = projection([city.lng, city.lat]);
         if (!pt) return;
 
+        // 3D 模式下若標點旋轉到地球背面，自動隱藏不渲染
+        if (mapMode === '3D') {
+          const gdistance = d3.geoDistance([city.lng, city.lat], projection.invert([width / 2, height / 2]));
+          if (gdistance > Math.PI / 2) return;
+        }
+
         const regionTheme = REGION_COLORS[city.region || 'ASIA'] || REGION_COLORS['ASIA'];
 
-        const glowRadius = (10 + Math.sin(pulseTime) * 4) / Math.sqrt(zoomLevel);
+        const glowRadius = (10 + Math.sin(pulseTime) * 4) / (mapMode === '2D' ? Math.sqrt(zoomLevel) : 1);
         const gradient = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], glowRadius);
         gradient.addColorStop(0, regionTheme.glow + '1)');
         gradient.addColorStop(0.4, regionTheme.glow + '0.5)');
@@ -751,16 +871,16 @@
 
         ctx.fillStyle = regionTheme.core;
         ctx.beginPath();
-        ctx.arc(pt[0], pt[1], 3 / Math.sqrt(zoomLevel), 0, Math.PI * 2);
+        ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2);
         ctx.fill();
 
         const labelText = `> ${city.city_name.toUpperCase()}`;
-        const labelX = pt[0] + 8 / zoomLevel;
-        const labelY = pt[1] + 3 / zoomLevel;
+        const labelX = pt[0] + 8;
+        const labelY = pt[1] + 3;
 
         let hasOverlap = false;
         for (let box of labelBoxes) {
-          if (Math.abs(box.x - labelX) < 40 / zoomLevel && Math.abs(box.y - labelY) < 12 / zoomLevel) {
+          if (Math.abs(box.x - labelX) < 40 && Math.abs(box.y - labelY) < 12) {
             hasOverlap = true;
             break;
           }
@@ -769,7 +889,7 @@
         if (!hasOverlap || zoomLevel > 2.0) {
           labelBoxes.push({ x: labelX, y: labelY });
           ctx.fillStyle = '#a0a0a0';
-          ctx.font = `${Math.max(8, 10 / Math.sqrt(zoomLevel))}px Space Mono`;
+          ctx.font = '10px Space Mono';
           ctx.fillText(labelText, labelX, labelY);
         }
       });
@@ -787,8 +907,13 @@
       }
 
       const rect = canvas.getBoundingClientRect();
-      const clickX = (e.clientX - rect.left - panOffset.x) / zoomLevel;
-      const clickY = (e.clientY - rect.top - panOffset.y) / zoomLevel;
+      let clickX = e.clientX - rect.left;
+      let clickY = e.clientY - rect.top;
+
+      if (mapMode === '2D') {
+        clickX = (clickX - panOffset.x) / zoomLevel;
+        clickY = (clickY - panOffset.y) / zoomLevel;
+      }
 
       const coords = projection.invert([clickX, clickY]);
       if (!coords) return;
