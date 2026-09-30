@@ -219,27 +219,56 @@
     .btn { flex: 1; padding: 8px; background: var(--glyph-white); color: var(--bg-color); border: none; font-weight: bold; cursor: pointer; font-size: 10px; letter-spacing: 1px; border-radius: 4px; }
     .btn-cancel { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); }
 
-    /* Country Cards View */
+    /* Country Cards View & 行政區展開組件 */
     .cards-view-overlay { display: none; position: fixed; top: 75px; left: 0; width: 100vw; height: calc(100vh - 75px); z-index: 850; background: var(--canvas-bg); padding: 20px 20px 80px 20px; overflow-y: auto; }
-    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; max-width: 1100px; margin: 0 auto; }
-    .flip-card-container { perspective: 1000px; height: 380px; cursor: pointer; }
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; max-width: 1100px; margin: 0 auto; transition: all 0.4s ease; }
+    
+    /* 展開分區時的動態容器 */
+    .flip-card-wrapper { position: relative; perspective: 1200px; height: 380px; transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+    .flip-card-wrapper.expanded { grid-column: span 2; display: flex; gap: 16px; }
+
+    .flip-card-container { width: 100%; height: 100%; cursor: pointer; transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+    .flip-card-wrapper.expanded .flip-card-container { width: 220px; flex-shrink: 0; }
+
     .flip-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; }
     .flip-card-container.flipped .flip-card-inner { transform: rotateY(180deg); }
-    .deep-card-front, .deep-card-back { position: absolute; inset: 0; width: 100%; height: 100%; -webkit-backface-visibility: hidden !important; backface-visibility: hidden !important; border-radius: 24px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 15px 35px rgba(0,0,0,0.3); }
+    
+    .deep-card-front, .deep-card-back { position: absolute; inset: 0; width: 100%; height: 100%; -webkit-backface-visibility: hidden !important; backface-visibility: hidden !important; border-radius: 20px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 15px 35px rgba(0,0,0,0.3); }
     .deep-card-front { background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; z-index: 2; }
     .deep-card-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.65) 45%, rgba(0,0,0,0.95) 100%); z-index: 1; }
     .deep-card-content { position: relative; z-index: 2; }
     .deep-card-title { font-size: 22px; font-weight: 700; letter-spacing: 1px; color: #ffffff; margin-bottom: 6px; }
     .deep-card-cities { font-size: 11px; color: #d0d0d0; line-height: 1.5; margin-bottom: 14px; min-height: 33px; }
-    .deep-card-back { transform: rotateY(180deg); background-color: var(--panel-bg) !important; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 24px; z-index: 1; }
-    .flag-large-img { width: 150px; height: 100px; object-fit: cover; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.3); border: 1px solid var(--border-color); margin-bottom: 16px; }
-    .flag-country-name { font-size: 18px; font-weight: bold; letter-spacing: 2px; color: var(--glyph-white); }
+    
+    .deep-card-back { transform: rotateY(180deg); background-color: var(--panel-bg) !important; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; z-index: 1; text-align: center; }
+    .flag-large-img { width: 120px; height: 80px; object-fit: cover; border-radius: 6px; box-shadow: 0 0 20px rgba(0,0,0,0.4); border: 1px solid var(--border-color); margin-bottom: 12px; }
+    .flag-country-name { font-size: 16px; font-weight: bold; letter-spacing: 2px; color: var(--glyph-white); margin-bottom: 6px; }
+    .subdivision-hint { font-size: 8px; color: var(--glyph-red); letter-spacing: 1px; border: 1px solid var(--glyph-red); padding: 3px 6px; border-radius: 4px; margin-top: 8px; font-weight: bold; }
 
-    @media (max-width: 600px) {
+    /* 右側行政分區 SVG 視窗 */
+    .subdivision-panel {
+      display: none; flex-grow: 1; height: 100%; background: var(--drawer-bg);
+      border: 1px solid var(--border-color); border-radius: 20px; padding: 16px;
+      backdrop-filter: blur(20px); box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+      flex-direction: column; opacity: 0; transform: translateX(20px);
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); position: relative; overflow: hidden;
+    }
+    .flip-card-wrapper.expanded .subdivision-panel { display: flex; opacity: 1; transform: translateX(0); }
+    .subdivision-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 8px; margin-bottom: 10px; }
+    .subdivision-title { font-size: 11px; font-weight: bold; letter-spacing: 1.5px; color: var(--glyph-white); }
+    .subdivision-close { cursor: pointer; font-size: 10px; color: var(--text-muted); font-weight: bold; }
+    .subdivision-close:hover { color: var(--glyph-white); }
+    .subdivision-svg-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+    .subdivision-svg-container svg { width: 100%; height: 100%; max-height: 280px; }
+
+    @media (max-width: 768px) {
       .dashboard-wrapper { top: 60px; left: 15px; width: calc(100vw - 30px); }
       .pack-drawer { max-height: 35vh; }
       .top-right-controls { top: 15px; right: 15px; }
       .bottom-world-progress { width: calc(100vw - 30px); bottom: 15px; }
+      .flip-card-wrapper.expanded { grid-column: span 1; flex-direction: column; height: auto; }
+      .flip-card-wrapper.expanded .flip-card-container { width: 100%; height: 380px; }
+      .subdivision-panel { height: 320px; }
     }
   </style>
 </head>
@@ -453,6 +482,7 @@
 
     const TOTAL_WORLD_COUNTRIES = 195;
 
+    /* 包含補上的 Vatican City (梵蒂岡) */
     const STATIC_LANDMARKS = {
       'CANADA': 'https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=800&auto=format&fit=crop',
       'CHINA': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800&auto=format&fit=crop',
@@ -475,7 +505,10 @@
       'ICELAND': 'https://images.unsplash.com/photo-1504893524553-b855bce32c67?w=800&auto=format&fit=crop',
       'FINLAND': 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&auto=format&fit=crop',
       'NETHERLANDS': 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=800&auto=format&fit=crop',
-      'MALDIVES': 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&auto=format&fit=crop'
+      'MALDIVES': 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&auto=format&fit=crop',
+      'VATICAN CITY': 'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=800&auto=format&fit=crop',
+      'VATICAN': 'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=800&auto=format&fit=crop',
+      '梵蒂岡': 'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=800&auto=format&fit=crop'
     };
 
     const COUNTRY_FLAG_CODES = {
@@ -483,7 +516,7 @@
       'USA': 'us', 'UNITED STATES': 'us', 'FIJI': 'fj', 'AUSTRALIA': 'au', 'MACAU': 'mo', 'HONG KONG': 'hk',
       'KOREA': 'kr', 'SOUTH KOREA': 'kr', 'SINGAPORE': 'sg', 'MALAYSIA': 'my', 'GERMANY': 'de',
       'ITALY': 'it', 'SWITZERLAND': 'ch', 'NORWAY': 'no', 'ICELAND': 'is', 'FINLAND': 'fi',
-      'NETHERLANDS': 'nl', 'MALDIVES': 'mv', 'UNITED KINGDOM': 'gb', 'UK': 'gb', 'FRANCE': 'fr'
+      'NETHERLANDS': 'nl', 'MALDIVES': 'mv', 'UNITED KINGDOM': 'gb', 'UK': 'gb', 'FRANCE': 'fr', 'VATICAN CITY': 'va', 'VATICAN': 'va'
     };
 
     const COUNTRY_CN_NAME = {
@@ -491,7 +524,7 @@
       'SOUTH KOREA': '韓國', 'KOREA': '韓國', 'THAILAND': '泰國', 'VIETNAM': '越南', 'MALAYSIA': '馬來西亞', 'SINGAPORE': '新加坡',
       'USA': '美國', 'UNITED STATES': '美國', 'CANADA': '加拿大', 'AUSTRALIA': '澳洲', 'NEW ZEALAND': '紐西蘭',
       'GERMANY': '德國', 'FRANCE': '法國', 'ITALY': '義大利', 'SWITZERLAND': '瑞士', 'NORWAY': '挪威',
-      'ICELAND': '冰島', 'FINLAND': '芬蘭', 'NETHERLANDS': '荷蘭', 'MALDIVES': '馬爾地夫', 'FIJI': '斐濟'
+      'ICELAND': '冰島', 'FINLAND': '芬蘭', 'NETHERLANDS': '荷蘭', 'MALDIVES': '馬爾地夫', 'FIJI': '斐濟', 'VATICAN CITY': '梵蒂岡', 'VATICAN': '梵蒂岡'
     };
 
     const REGION_COLORS = {
@@ -502,17 +535,15 @@
       'OCEANIA': { core: '#69F0AE', glow: 'rgba(105, 240, 174, ' }
     };
 
-    /* 各洲專屬精確地標座標與全景 Zoom 放大倍數配置 */
     const REGION_TARGETS = {
       'ALL': { lng: 0, lat: 20, zoom: 1.0 },
-      'ASIA': { lng: 113.5439, lat: 22.1987, zoom: 1.8 },     // 澳門
-      'EUROPE': { lng: 12.4964, lat: 41.9028, zoom: 2.2 },     // 羅馬
-      'AMERICAS': { lng: -75.6972, lat: 45.4215, zoom: 1.5 },   // 渥太華
-      'AFRICA': { lng: 15.2663, lat: -4.4419, zoom: 1.6 },     // 金沙薩
-      'OCEANIA': { lng: 174.7633, lat: -36.8485, zoom: 1.8 }   // 奧克蘭
+      'ASIA': { lng: 113.5439, lat: 22.1987, zoom: 1.8 },
+      'EUROPE': { lng: 12.4964, lat: 41.9028, zoom: 2.2 },
+      'AMERICAS': { lng: -75.6972, lat: 45.4215, zoom: 1.5 },
+      'AFRICA': { lng: 15.2663, lat: -4.4419, zoom: 1.6 },
+      'OCEANIA': { lng: 174.7633, lat: -36.8485, zoom: 1.8 }
     };
 
-    // 平滑飛躍動畫狀態變數
     let currentCenter = [0, 20];
     let targetCenter = [0, 20];
     let currentScale = 1.0;
@@ -586,34 +617,26 @@
       }
     }
 
-    /* 修正：Filter 按下時暫停 3D 自轉並重置角度狀態，徹底解決卡 Bug 問題 */
     function setFilter(region, element) {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
       currentFilter = region;
 
-      // 核心修復 1: 重置用戶操作時間，暫停 3D 自動自轉
       lastUserActionTime = Date.now();
-
-      targetPan = { x: 0, y: 0 };
-      panOffset = { x: 0, y: 0 };
+      targetPan = { x: 0, y: 0 }; panOffset = { x: 0, y: 0 };
 
       const target = REGION_TARGETS[region] || REGION_TARGETS['ALL'];
       targetCenter = [target.lng, target.lat];
       targetScale = target.zoom;
 
-      // 核心修復 2: 3D 旋轉角度同步重置
-      if (mapMode === '3D') {
-        rotation = [-targetCenter[0], -targetCenter[1]];
-      }
+      if (mapMode === '3D') rotation = [-targetCenter[0], -targetCenter[1]];
 
       const drawer = document.getElementById('pack-drawer');
       const drawerTitle = document.getElementById('drawer-title');
       const drawerContent = document.getElementById('drawer-content');
 
       if (region === 'ALL') {
-        drawer.style.display = 'none';
-        return;
+        drawer.style.display = 'none'; return;
       }
 
       drawerTitle.innerText = `${region} // EXPLORED`;
@@ -641,10 +664,9 @@
         });
       }
 
-      // 重設動畫並顯現
       drawer.style.display = 'block';
       drawer.style.animation = 'none';
-      drawer.offsetHeight; // 強制重繪
+      drawer.offsetHeight;
       drawer.style.animation = 'smoothSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards';
     }
 
@@ -715,23 +737,14 @@
 
     canvas.addEventListener('dblclick', (e) => {
       playClickSound();
-      if (!currentUser) {
-        alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號！');
-        return;
-      }
+      if (!currentUser) { alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號！'); return; }
 
       const rect = canvas.getBoundingClientRect();
-      let clickX = e.clientX - rect.left;
-      let clickY = e.clientY - rect.top;
+      let clickX = e.clientX - rect.left; let clickY = e.clientY - rect.top;
 
-      if (mapMode === '2D') {
-        clickX = (clickX - panOffset.x);
-        clickY = (clickY - panOffset.y);
-      }
-
+      if (mapMode === '2D') { clickX = (clickX - panOffset.x); clickY = (clickY - panOffset.y); }
       const coords = projection.invert([clickX, clickY]);
       if (!coords) return;
-
       openAddCityModal(coords[1], coords[0]);
     });
 
@@ -741,8 +754,7 @@
       if (isDragging) {
         const dx = e.clientX - dragStart.x; const dy = e.clientY - dragStart.y;
         if (mapMode === '3D') {
-          rotation[0] += dx * 0.4; rotation[1] -= dy * 0.4;
-          projection.rotate([rotation[0], rotation[1]]);
+          rotation[0] += dx * 0.4; rotation[1] -= dy * 0.4; projection.rotate([rotation[0], rotation[1]]);
         } else {
           panOffset.x += dx; panOffset.y += dy; targetPan.x = panOffset.x; targetPan.y = panOffset.y;
         }
@@ -807,8 +819,6 @@
     let pulseTime = 0;
     function renderCanvas() {
       pulseTime += 0.03;
-
-      // 順滑 Lerp 動畫更新 Projection 狀態
       currentCenter[0] += (targetCenter[0] - currentCenter[0]) * 0.08;
       currentCenter[1] += (targetCenter[1] - currentCenter[1]) * 0.08;
       currentScale += (targetScale - currentScale) * 0.08;
@@ -818,7 +828,6 @@
         panOffset.y += (targetPan.y - panOffset.y) * 0.1;
         projection.center(currentCenter).scale((width / 6.5) * currentScale);
       } else if (mapMode === '3D') {
-        // 核心修復 3: 在自轉判斷中加入更平滑的角度過渡
         if (!isDragging && (Date.now() - lastUserActionTime > IDLE_ROTATION_DELAY)) {
           rotation[0] += 0.15;
         } else {
@@ -913,7 +922,6 @@
           ctx.strokeStyle = labelStrokeColor;
           ctx.lineWidth = 1.6;
           ctx.strokeText(labelText, pt[0] + 8, pt[1] + 3);
-
           ctx.fillStyle = labelTextColor;
           ctx.fillText(labelText, pt[0] + 8, pt[1] + 3);
         }
@@ -985,41 +993,146 @@
       } catch(e){}
     }
 
+    /* 核心功能：動態生成行政區向量圖形並點亮輸入座標地區 */
+    function renderSubdivisionMap(containerId, countryName, countryCities) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+
+      if (!worldGeoData) return;
+      const countries = topojson.feature(worldGeoData, worldGeoData.objects.countries);
+      const targetFeature = countries.features.find(f => (f.properties.name || '').toUpperCase().trim() === countryName);
+
+      if (!targetFeature) {
+        container.innerHTML = '<div style="font-size:9px; color:var(--text-muted);">NO MAP GEOMETRY AVAILABLE.</div>';
+        return;
+      }
+
+      const svg = d3.select(container).append('svg').attr('viewBox', '0 0 300 240');
+      const projection = d3.geoMercator().fitSize([300, 240], targetFeature);
+      const path = d3.geoPath().projection(projection);
+
+      // 繪製該國輪廓
+      svg.append('path')
+        .datum(targetFeature)
+        .attr('d', path)
+        .attr('fill', 'rgba(255, 255, 255, 0.05)')
+        .attr('stroke', 'rgba(255, 255, 255, 0.3)')
+        .attr('stroke-width', 1.2);
+
+      // 在地圖上點亮你在主頁輸入過座標的城市
+      countryCities.forEach(city => {
+        const pt = projection([city.lng, city.lat]);
+        if (pt) {
+          // 微光亮區圓環
+          svg.append('circle')
+            .attr('cx', pt[0]).attr('cy', pt[1])
+            .attr('r', 12)
+            .attr('fill', 'rgba(215, 25, 33, 0.25)');
+
+          // 核心燈點
+          svg.append('circle')
+            .attr('cx', pt[0]).attr('cy', pt[1])
+            .attr('r', 3.5)
+            .attr('fill', '#D71921');
+
+          // 城市名稱
+          svg.append('text')
+            .attr('x', pt[0] + 6)
+            .attr('y', pt[1] + 3)
+            .text(city.city_name.toUpperCase())
+            .attr('fill', '#ffffff')
+            .attr('font-size', '8px')
+            .attr('font-family', 'Space Mono')
+            .attr('font-weight', 'bold');
+        }
+      });
+    }
+
+    /* 渲染 Country Cards 視窗並綁定左移與分區展開事件 */
     function renderCountryCards() {
       const container = document.getElementById('cards-container'); container.innerHTML = '';
       const grouped = {};
       visitedCities.forEach(c => {
         const country = cleanCountryName(c.country);
         if (!grouped[country]) grouped[country] = [];
-        grouped[country].push(c.city_name);
+        grouped[country].push(c);
       });
 
-      Object.keys(grouped).forEach(country => {
-        const citiesList = grouped[country].join(', ');
+      Object.keys(grouped).forEach((country, idx) => {
+        const citiesObjects = grouped[country];
+        const citiesList = citiesObjects.map(c => c.city_name).join(', ');
         const bgImg = getCountryImageUrl(country);
         const flagCode = COUNTRY_FLAG_CODES[country] || 'un';
         const flagUrl = `https://flagcdn.com/w160/${flagCode}.png`;
+        const svgContainerId = `subdiv-svg-${idx}`;
 
-        const card = document.createElement('div');
-        card.className = 'flip-card-container';
-        card.onclick = function() { playClickSound(); this.classList.toggle('flipped'); };
-        card.innerHTML = `
-          <div class="flip-card-inner">
-            <div class="deep-card-front" style="background-image: url('${bgImg}');">
-              <div class="deep-card-overlay"></div>
-              <div class="deep-card-content">
-                <div class="deep-card-title">#${country}</div>
-                <div class="deep-card-cities">Cities: ${citiesList}</div>
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flip-card-wrapper';
+        wrapper.id = `card-wrapper-${idx}`;
+
+        wrapper.innerHTML = `
+          <div class="flip-card-container" id="card-container-${idx}">
+            <div class="flip-card-inner">
+              <div class="deep-card-front" style="background-image: url('${bgImg}');">
+                <div class="deep-card-overlay"></div>
+                <div class="deep-card-content">
+                  <div class="deep-card-title">#${country}</div>
+                  <div class="deep-card-cities">Cities: ${citiesList}</div>
+                </div>
+              </div>
+              <div class="deep-card-back">
+                <img class="flag-large-img" src="${flagUrl}" alt="${country} flag">
+                <div class="flag-country-name">#${country}</div>
+                <div class="subdivision-hint">[ CLICK TO TOGGLE REGION MAP ]</div>
               </div>
             </div>
-            <div class="deep-card-back">
-              <img class="flag-large-img" src="${flagUrl}" alt="${country} flag">
-              <div class="flag-country-name">#${country}</div>
+          </div>
+          <div class="subdivision-panel">
+            <div class="subdivision-header">
+              <span class="subdivision-title">// ${country} REGIONAL MAP</span>
+              <span class="subdivision-close" onclick="closeSubpanel(${idx})">[CLOSE]</span>
             </div>
+            <div class="subdivision-svg-container" id="${svgContainerId}"></div>
           </div>
         `;
-        container.appendChild(card);
+
+        const cardContainer = wrapper.querySelector(`.flip-card-container`);
+        cardContainer.onclick = function(e) {
+          e.stopPropagation();
+          playClickSound();
+
+          // 關閉其他已展開的卡片
+          document.querySelectorAll('.flip-card-wrapper').forEach((w, wIdx) => {
+            if (wIdx !== idx) {
+              w.classList.remove('expanded');
+              w.querySelector('.flip-card-container').classList.remove('flipped');
+            }
+          });
+
+          this.classList.toggle('flipped');
+          const isFlipped = this.classList.contains('flipped');
+
+          if (isFlipped) {
+            wrapper.classList.add('expanded');
+            setTimeout(() => {
+              renderSubdivisionMap(svgContainerId, country, citiesObjects);
+            }, 200);
+          } else {
+            wrapper.classList.remove('expanded');
+          }
+        };
+
+        container.appendChild(wrapper);
       });
+    }
+
+    function closeSubpanel(idx) {
+      playClickSound();
+      const wrapper = document.getElementById(`card-wrapper-${idx}`);
+      if (wrapper) {
+        wrapper.classList.remove('expanded');
+        wrapper.querySelector('.flip-card-container').classList.remove('flipped');
+      }
     }
 
     function renderCityManageList() {
