@@ -220,55 +220,72 @@
     .btn { flex: 1; padding: 8px; background: var(--glyph-white); color: var(--bg-color); border: none; font-weight: bold; cursor: pointer; font-size: 10px; letter-spacing: 1px; border-radius: 4px; }
     .btn-cancel { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); }
 
-    /* Country Cards View & 行政區展開組件 */
+    /* Country Cards View */
     .cards-view-overlay { display: none; position: fixed; top: 75px; left: 0; width: 100vw; height: calc(100vh - 75px); z-index: 850; background: var(--canvas-bg); padding: 20px 20px 80px 20px; overflow-y: auto; }
-    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; max-width: 1100px; margin: 0 auto; transition: all 0.4s ease; }
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; max-width: 1100px; margin: 0 auto; }
     
-    .flip-card-wrapper { position: relative; perspective: 1200px; height: 380px; transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-    .flip-card-wrapper.expanded { grid-column: span 2; display: flex; gap: 16px; }
-
-    .flip-card-container { width: 100%; height: 100%; cursor: pointer; transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-    .flip-card-wrapper.expanded .flip-card-container { width: 220px; flex-shrink: 0; }
-
-    .flip-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; }
-    .flip-card-container.flipped .flip-card-inner { transform: rotateY(180deg); }
-    
-    .deep-card-front, .deep-card-back { position: absolute; inset: 0; width: 100%; height: 100%; -webkit-backface-visibility: hidden !important; backface-visibility: hidden !important; border-radius: 20px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 15px 35px rgba(0,0,0,0.3); }
-    .deep-card-front { background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; z-index: 2; }
+    .flip-card-container { height: 380px; cursor: pointer; border-radius: 20px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 15px 35px rgba(0,0,0,0.3); transition: transform 0.3s ease, border-color 0.3s ease; }
+    .flip-card-container:hover { transform: translateY(-4px); border-color: var(--glyph-white); }
+    .deep-card-front { width: 100%; height: 100%; background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; position: relative; }
     .deep-card-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.65) 45%, rgba(0,0,0,0.95) 100%); z-index: 1; }
     .deep-card-content { position: relative; z-index: 2; }
     .deep-card-title { font-size: 22px; font-weight: 700; letter-spacing: 1px; color: #ffffff; margin-bottom: 6px; }
-    .deep-card-cities { font-size: 11px; color: #d0d0d0; line-height: 1.5; margin-bottom: 14px; min-height: 33px; }
-    
-    .deep-card-back { transform: rotateY(180deg); background-color: var(--panel-bg) !important; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; z-index: 1; text-align: center; }
-    .flag-large-img { width: 120px; height: 80px; object-fit: cover; border-radius: 6px; box-shadow: 0 0 20px rgba(0,0,0,0.4); border: 1px solid var(--border-color); margin-bottom: 12px; }
-    .flag-country-name { font-size: 16px; font-weight: bold; letter-spacing: 2px; color: var(--glyph-white); margin-bottom: 6px; }
-    .subdivision-hint { font-size: 8px; color: var(--glyph-red); letter-spacing: 1px; border: 1px solid var(--glyph-red); padding: 3px 6px; border-radius: 4px; margin-top: 8px; font-weight: bold; }
+    .deep-card-cities { font-size: 11px; color: #d0d0d0; line-height: 1.5; margin-bottom: 10px; min-height: 33px; }
+    .click-zoom-hint { font-size: 8px; color: var(--glyph-red); letter-spacing: 1px; font-weight: bold; }
 
-    /* 右側行政分區 SVG 視窗 */
-    .subdivision-panel {
-      display: none; flex-grow: 1; height: 100%; background: var(--drawer-bg);
-      border: 1px solid var(--border-color); border-radius: 20px; padding: 16px;
-      backdrop-filter: blur(20px); box-shadow: 0 15px 35px rgba(0,0,0,0.4);
-      flex-direction: column; opacity: 0; transform: translateX(20px);
-      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); position: relative; overflow: hidden;
+    /* 80% 螢幕大彈窗 (Pop-up Modal Overlay) */
+    .subdivision-modal-overlay {
+      display: none; position: fixed; inset: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(20px); z-index: 2500;
+      justify-content: center; align-items: center;
+      animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-    .flip-card-wrapper.expanded .subdivision-panel { display: flex; opacity: 1; transform: translateX(0); }
-    .subdivision-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 8px; margin-bottom: 10px; }
-    .subdivision-title { font-size: 11px; font-weight: bold; letter-spacing: 1.5px; color: var(--glyph-white); }
-    .subdivision-close { cursor: pointer; font-size: 10px; color: var(--text-muted); font-weight: bold; }
-    .subdivision-close:hover { color: var(--glyph-white); }
-    .subdivision-svg-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; position: relative; }
-    .subdivision-svg-container svg { width: 100%; height: 100%; max-height: 280px; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    @media (max-width: 768px) {
-      .dashboard-wrapper { top: 60px; left: 15px; width: calc(100vw - 30px); }
-      .pack-drawer { max-height: 35vh; }
-      .top-right-controls { top: 15px; right: 15px; }
-      .bottom-world-progress { width: calc(100vw - 30px); bottom: 15px; }
-      .flip-card-wrapper.expanded { grid-column: span 1; flex-direction: column; height: auto; }
-      .flip-card-wrapper.expanded .flip-card-container { width: 100%; height: 380px; }
-      .subdivision-panel { height: 320px; }
+    .subdivision-modal-container {
+      width: 80vw; height: 80vh; background: var(--drawer-bg);
+      border: 1px solid var(--border-color); border-radius: 24px;
+      display: flex; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+      position: relative; animation: popUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes popUp { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    /* 按 ESC 返回標籤 */
+    .esc-close-btn {
+      position: absolute; top: 20px; right: 24px; z-index: 10;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--border-color);
+      color: var(--glyph-white); font-size: 10px; font-weight: bold;
+      padding: 8px 16px; border-radius: 20px; cursor: pointer; letter-spacing: 1.5px;
+      transition: all 0.2s ease;
+    }
+    .esc-close-btn:hover { background: var(--glyph-white); color: var(--bg-color); }
+
+    /* 左邊 20% Flag & Info */
+    .modal-left-panel {
+      width: 20%; height: 100%; border-right: 1px dashed var(--border-color);
+      padding: 30px 20px; display: flex; flex-direction: column; align-items: center;
+      justify-content: flex-start; text-align: center; background: rgba(0,0,0,0.2);
+    }
+    .modal-flag-img { width: 100%; max-width: 140px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-bottom: 20px; }
+    .modal-country-title { font-size: 20px; font-weight: bold; letter-spacing: 2px; color: var(--glyph-white); margin-bottom: 6px; }
+    .modal-country-sub { font-size: 10px; color: var(--glyph-red); letter-spacing: 1px; margin-bottom: 20px; font-weight: bold; }
+    .modal-city-list-box { width: 100%; text-align: left; border-top: 1px dashed var(--border-color); padding-top: 15px; overflow-y: auto; }
+    .modal-city-title { font-size: 9px; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 8px; font-weight: bold; }
+    .modal-city-item { font-size: 10px; color: var(--glyph-white); margin-bottom: 4px; font-weight: bold; display: flex; align-items: center; gap: 6px; }
+    .modal-city-item::before { content: '›'; color: var(--glyph-red); font-weight: bold; }
+
+    /* 右邊 80% Super Map */
+    .modal-right-map {
+      width: 80%; height: 100%; display: flex; justify-content: center; align-items: center;
+      padding: 30px; position: relative; background: var(--canvas-bg);
+    }
+    .modal-right-map svg { width: 100%; height: 100%; max-height: 100%; }
+
+    @media (max-width: 900px) {
+      .subdivision-modal-container { width: 92vw; height: 90vh; flex-direction: column; }
+      .modal-left-panel { width: 100%; height: 35%; border-right: none; border-bottom: 1px dashed var(--border-color); padding: 15px; flex-direction: row; gap: 15px; text-align: left; }
+      .modal-flag-img { width: 90px; height: 60px; margin-bottom: 0; }
+      .modal-right-map { width: 100%; height: 65%; padding: 15px; }
     }
   </style>
 </head>
@@ -424,12 +441,36 @@
     <div class="cards-grid" id="cards-container"></div>
   </div>
 
+  <!-- 80% 螢幕特大行政分區視窗 (Pop-Up Modal Overlay) -->
+  <div class="subdivision-modal-overlay" id="subdivision-pop-modal">
+    <div class="subdivision-modal-container">
+      <button class="esc-close-btn" onclick="closeSubdivisionModal()">[ ESC / CLOSE ]</button>
+      
+      <!-- 左邊 20% -->
+      <div class="modal-left-panel">
+        <img class="modal-flag-img" id="pop-flag-img" src="" alt="flag">
+        <div class="modal-country-title" id="pop-country-title">#JAPAN</div>
+        <div class="modal-country-sub" id="pop-country-sub">REGIONAL MAP</div>
+        <div class="modal-city-list-box">
+          <div class="modal-city-title">UNLOCKED CITIES:</div>
+          <div id="pop-city-list"></div>
+        </div>
+      </div>
+
+      <!-- 右邊 80% -->
+      <div class="modal-right-map" id="pop-map-container"></div>
+    </div>
+  </div>
+
   <canvas id="world-canvas"></canvas>
 
   <script>
     /* 防快捷鍵模組 */
     document.addEventListener('contextmenu', e => e.preventDefault());
     document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        closeSubdivisionModal();
+      }
       if (
         e.key === 'F12' ||
         (e.ctrlKey && e.shiftKey && ['I','i','J','j','C','c'].includes(e.key)) ||
@@ -807,7 +848,7 @@
     });
 
     let worldGeoData = null;
-    let globalSubdivisionsData = null; // 全球一級行政區劃數據
+    let globalSubdivisionsData = null;
 
     fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
       .then(res => res.json()).then(data => { 
@@ -817,7 +858,6 @@
         toggleCityLabels(showCityLabels);
       }).catch(e => fetchVisitedCities());
 
-    // 預加載全球一級行政區 Vector Data
     fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_1_states_provinces.geojson')
       .then(res => res.json())
       .then(data => { globalSubdivisionsData = data; })
@@ -1000,12 +1040,31 @@
       } catch(e){}
     }
 
-    /* 核心功能重構：動態計算幾何並亮點解鎖行政分區 */
-    function renderSubdivisionMap(containerId, countryName, countryCities) {
-      const container = document.getElementById(containerId);
-      container.innerHTML = '';
+    /* 80% 大視窗加載與地圖渲染 */
+    function openSubdivisionModal(countryName, countryCities) {
+      playClickSound();
+      const modal = document.getElementById('subdivision-pop-modal');
+      const flagImg = document.getElementById('pop-flag-img');
+      const title = document.getElementById('pop-country-title');
+      const cityListEl = document.getElementById('pop-city-list');
+      const container = document.getElementById('pop-map-container');
 
-      // 檢查特例或準備 TopoJSON 備選國家幾何
+      const flagCode = COUNTRY_FLAG_CODES[countryName] || 'un';
+      flagImg.src = `https://flagcdn.com/w160/${flagCode}.png`;
+      title.innerText = `#${countryName}`;
+      
+      cityListEl.innerHTML = '';
+      countryCities.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'modal-city-item';
+        div.innerText = c.city_name.toUpperCase();
+        cityListEl.appendChild(div);
+      });
+
+      container.innerHTML = '';
+      modal.style.display = 'flex';
+
+      // 開始渲染大尺寸地圖
       let targetFeatures = [];
       if (globalSubdivisionsData && globalSubdivisionsData.features) {
         targetFeatures = globalSubdivisionsData.features.filter(f => {
@@ -1015,7 +1074,6 @@
         });
       }
 
-      // 如果加載不到詳細行政分區，降級採用整國國家邊界
       if (targetFeatures.length === 0 && worldGeoData) {
         const countries = topojson.feature(worldGeoData, worldGeoData.objects.countries);
         const match = countries.features.find(f => (f.properties.name || '').toUpperCase().trim() === countryName);
@@ -1023,16 +1081,20 @@
       }
 
       if (targetFeatures.length === 0) {
-        container.innerHTML = '<div style="font-size:9px; color:var(--text-muted); margin-top:40px;">// SUBDIVISION DATA LOADING...</div>';
+        container.innerHTML = '<div style="font-size:11px; color:var(--text-muted);">// MAP DATA LOADING...</div>';
         return;
       }
 
       const featureCollection = { type: 'FeatureCollection', features: targetFeatures };
-      const svg = d3.select(container).append('svg').attr('viewBox', '0 0 320 250');
-      const projection = d3.geoMercator().fitSize([320, 250], featureCollection);
+      const mapBounds = container.getBoundingClientRect();
+      const svgWidth = mapBounds.width - 40;
+      const svgHeight = mapBounds.height - 40;
+
+      const svg = d3.select(container).append('svg').attr('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+      const projection = d3.geoMercator().fitSize([svgWidth, svgHeight], featureCollection);
       const path = d3.geoPath().projection(projection);
 
-      // 判斷哪些行政分區包含用戶輸入過的 city 座標 (塊狀點亮)
+      // 塊狀點亮都道府縣
       const unlockedProvinces = new Set();
       countryCities.forEach(city => {
         const pt = [city.lng, city.lat];
@@ -1045,45 +1107,50 @@
         });
       });
 
-      // 1. 繪製所有行政分區線條 (極簡暗黑風格)
-      svg.selectAll('.subdiv-feature')
+      // 繪製極簡科技感線條與微光填充
+      svg.selectAll('.pop-subdiv-feature')
         .data(targetFeatures)
         .enter()
         .append('path')
-        .attr('class', 'subdiv-feature')
+        .attr('class', 'pop-subdiv-feature')
         .attr('d', path)
-        .attr('fill', d => unlockedProvinces.has(d) ? 'rgba(215, 25, 33, 0.25)' : 'rgba(255, 255, 255, 0.02)')
-        .attr('stroke', d => unlockedProvinces.has(d) ? '#ffffff' : 'rgba(255, 255, 255, 0.18)')
-        .attr('stroke-width', d => unlockedProvinces.has(d) ? 1.2 : 0.6)
+        .attr('fill', d => unlockedProvinces.has(d) ? 'rgba(215, 25, 33, 0.35)' : 'rgba(255, 255, 255, 0.03)')
+        .attr('stroke', d => unlockedProvinces.has(d) ? '#ffffff' : 'rgba(255, 255, 255, 0.2)')
+        .attr('stroke-width', d => unlockedProvinces.has(d) ? 1.6 : 0.8)
         .style('transition', 'all 0.3s ease');
 
-      // 2. 疊加城市發光微粒與城市名稱
+      // 標註城市霓虹點與名稱
       countryCities.forEach(city => {
         const pt = projection([city.lng, city.lat]);
         if (pt && !isNaN(pt[0]) && !isNaN(pt[1])) {
           svg.append('circle')
             .attr('cx', pt[0]).attr('cy', pt[1])
-            .attr('r', 8)
-            .attr('fill', 'rgba(215, 25, 33, 0.4)');
+            .attr('r', 12)
+            .attr('fill', 'rgba(215, 25, 33, 0.45)');
 
           svg.append('circle')
             .attr('cx', pt[0]).attr('cy', pt[1])
-            .attr('r', 3)
+            .attr('r', 4)
             .attr('fill', '#D71921');
 
           svg.append('text')
-            .attr('x', pt[0] + 6)
-            .attr('y', pt[1] + 3)
+            .attr('x', pt[0] + 8)
+            .attr('y', pt[1] + 4)
             .text(city.city_name.toUpperCase())
             .attr('fill', '#ffffff')
-            .attr('font-size', '8px')
+            .attr('font-size', '11px')
             .attr('font-family', 'Space Mono')
             .attr('font-weight', 'bold');
         }
       });
     }
 
-    /* 渲染 Country Cards 視窗並綁定左移與分區展開事件 */
+    function closeSubdivisionModal() {
+      playClickSound();
+      document.getElementById('subdivision-pop-modal').style.display = 'none';
+    }
+
+    /* 渲染 Country Cards 視窗 */
     function renderCountryCards() {
       const container = document.getElementById('cards-container'); container.innerHTML = '';
       const grouped = {};
@@ -1093,81 +1160,28 @@
         grouped[country].push(c);
       });
 
-      Object.keys(grouped).forEach((country, idx) => {
+      Object.keys(grouped).forEach((country) => {
         const citiesObjects = grouped[country];
         const citiesList = citiesObjects.map(c => c.city_name).join(', ');
         const bgImg = getCountryImageUrl(country);
-        const flagCode = COUNTRY_FLAG_CODES[country] || 'un';
-        const flagUrl = `https://flagcdn.com/w160/${flagCode}.png`;
-        const svgContainerId = `subdiv-svg-${idx}`;
 
-        const wrapper = document.createElement('div');
-        wrapper.className = 'flip-card-wrapper';
-        wrapper.id = `card-wrapper-${idx}`;
+        const card = document.createElement('div');
+        card.className = 'flip-card-container';
+        card.onclick = function() { openSubdivisionModal(country, citiesObjects); };
 
-        wrapper.innerHTML = `
-          <div class="flip-card-container" id="card-container-${idx}">
-            <div class="flip-card-inner">
-              <div class="deep-card-front" style="background-image: url('${bgImg}');">
-                <div class="deep-card-overlay"></div>
-                <div class="deep-card-content">
-                  <div class="deep-card-title">#${country}</div>
-                  <div class="deep-card-cities">Cities: ${citiesList}</div>
-                </div>
-              </div>
-              <div class="deep-card-back">
-                <img class="flag-large-img" src="${flagUrl}" alt="${country} flag">
-                <div class="flag-country-name">#${country}</div>
-                <div class="subdivision-hint">[ CLICK TO TOGGLE REGION MAP ]</div>
-              </div>
+        card.innerHTML = `
+          <div class="deep-card-front" style="background-image: url('${bgImg}');">
+            <div class="deep-card-overlay"></div>
+            <div class="deep-card-content">
+              <div class="deep-card-title">#${country}</div>
+              <div class="deep-card-cities">Cities: ${citiesList}</div>
+              <div class="click-zoom-hint">[ CLICK TO EXPAND REGION MAP ]</div>
             </div>
-          </div>
-          <div class="subdivision-panel">
-            <div class="subdivision-header">
-              <span class="subdivision-title">// ${country} REGIONAL MAP</span>
-              <span class="subdivision-close" onclick="closeSubpanel(${idx})">[CLOSE]</span>
-            </div>
-            <div class="subdivision-svg-container" id="${svgContainerId}"></div>
           </div>
         `;
 
-        const cardContainer = wrapper.querySelector(`.flip-card-container`);
-        cardContainer.onclick = function(e) {
-          e.stopPropagation();
-          playClickSound();
-
-          // 關閉其他已展開的卡片
-          document.querySelectorAll('.flip-card-wrapper').forEach((w, wIdx) => {
-            if (wIdx !== idx) {
-              w.classList.remove('expanded');
-              w.querySelector('.flip-card-container').classList.remove('flipped');
-            }
-          });
-
-          this.classList.toggle('flipped');
-          const isFlipped = this.classList.contains('flipped');
-
-          if (isFlipped) {
-            wrapper.classList.add('expanded');
-            setTimeout(() => {
-              renderSubdivisionMap(svgContainerId, country, citiesObjects);
-            }, 150);
-          } else {
-            wrapper.classList.remove('expanded');
-          }
-        };
-
-        container.appendChild(wrapper);
+        container.appendChild(card);
       });
-    }
-
-    function closeSubpanel(idx) {
-      playClickSound();
-      const wrapper = document.getElementById(`card-wrapper-${idx}`);
-      if (wrapper) {
-        wrapper.classList.remove('expanded');
-        wrapper.querySelector('.flip-card-container').classList.remove('flipped');
-      }
     }
 
     function renderCityManageList() {
