@@ -1,1226 +1,280 @@
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Travel Map</title>
-  
-  <!-- Supabase, D3 & TopoJSON Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-array@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-geo@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-selection@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
-
-  <!-- Space Mono Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-
+  <title>3D P2P Web FPS Game</title>
   <style>
-    :root {
-      --bg-color: #000000;
-      --panel-bg: rgba(18, 18, 20, 0.95);
-      --drawer-bg: rgba(10, 10, 12, 0.96);
-      --glyph-white: #ffffff;
-      --glyph-red: #38bdf8; /* 升級為冰藍/微淡藍色主題亮色 */
-      --border-color: rgba(255, 255, 255, 0.12);
-      --text-muted: #888888;
-      --canvas-bg: #000000;
-      --land-bg: #0d0d0d;
-      --stroke-color: #262626;
-      --grid-color: #181818;
-      --label-color: #ffffff;
-      --label-stroke: #000000;
+    body { margin: 0; overflow: hidden; font-family: sans-serif; background: #000; }
+    #crosshair {
+      position: absolute; top: 50%; left: 50%;
+      width: 8px; height: 8px; background: rgba(0, 255, 0, 0.8);
+      border-radius: 50%; transform: translate(-50%, -50%);
+      pointer-events: none; z-index: 10;
     }
-
-    /* 沙白黃金主題變數 */
-    body.theme-sand {
-      --bg-color: #f4efea;
-      --panel-bg: rgba(244, 239, 234, 0.96);
-      --drawer-bg: rgba(235, 228, 220, 0.96);
-      --glyph-white: #1a1714;
-      --glyph-red: #38bdf8;
-      --border-color: rgba(0, 0, 0, 0.12);
-      --text-muted: #7a736c;
-      --canvas-bg: #e8e2d8;
-      --land-bg: #d8cfc0;
-      --stroke-color: #b5a895;
-      --grid-color: #cbc1b1;
-      --label-color: #1a1714;
-      --label-stroke: rgba(244, 239, 234, 0.95);
+    #ui {
+      position: absolute; bottom: 20px; left: 20px;
+      color: white; font-size: 18px; text-shadow: 2px 2px 4px #000; z-index: 10;
     }
-
-    /* 深海凍土 (Spec X UI) 主題變數 */
-    body.theme-specx {
-      --bg-color: #030813;
-      --panel-bg: rgba(10, 22, 40, 0.95);
-      --drawer-bg: rgba(6, 14, 26, 0.96);
-      --glyph-white: #e1ebf5;
-      --glyph-red: #38bdf8;
-      --border-color: rgba(56, 189, 248, 0.22);
-      --text-muted: #64748b;
-      --canvas-bg: #020611;
-      --land-bg: #7b93ae;
-      --stroke-color: #1e293b;
-      --grid-color: #0f172a;
-      --label-color: #040c1a;
-      --label-stroke: rgba(225, 235, 245, 0.95);
+    #connection-panel {
+      position: absolute; top: 20px; left: 20px;
+      background: rgba(0, 0, 0, 0.8); color: white;
+      padding: 15px; border-radius: 8px; z-index: 20;
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Mono', monospace, -apple-system, "PingFang HK", "Microsoft JhengHei"; user-select: none; }
-    html, body { width: 100%; height: 100%; background-color: var(--bg-color); color: var(--glyph-white); overflow: hidden; touch-action: none; transition: background-color 0.3s ease; }
-
-    #world-canvas {
-      position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: var(--canvas-bg); z-index: 1; cursor: grab;
+    #connection-panel input, #connection-panel button {
+      padding: 6px 10px; font-size: 14px; margin-top: 5px;
     }
-    #world-canvas:active { cursor: grabbing; }
-
-    /* Tooltip 懸浮框 */
-    .country-tooltip {
-      position: absolute; display: none; pointer-events: none; z-index: 3000;
-      background: rgba(15, 15, 15, 0.92); border: 1px solid rgba(255, 255, 255, 0.4);
-      color: #ffffff; padding: 6px 14px; font-size: 11px; font-weight: bold;
-      letter-spacing: 1.5px; border-radius: 4px; box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(8px); transform: translate(15px, 15px); transition: opacity 0.2s ease; white-space: nowrap;
-    }
-
-    /* Top Navigation Bar Bar Header BackDrop Mask */
-    .top-blur-mask {
-      position: absolute; top: 0; left: 0; width: 100vw; height: 75px; z-index: 900;
-      background: linear-gradient(180deg, var(--bg-color) 40%, rgba(0,0,0,0) 100%);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      pointer-events: none; transition: all 0.3s ease;
-    }
-
-    /* Top Navigation Bar */
-    .top-nav {
-      position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1000;
-      background: var(--panel-bg); border: 1px solid var(--border-color);
-      backdrop-filter: blur(16px); padding: 4px 8px; border-radius: 30px;
-      display: flex; gap: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-width: 90vw;
-    }
-    .nav-btn {
-      background: transparent; border: none; color: var(--text-muted); font-size: 10px;
-      padding: 6px 12px; cursor: pointer; border-radius: 20px; letter-spacing: 1px;
-      transition: all 0.2s; font-weight: bold; white-space: nowrap;
-    }
-    .nav-btn:hover, .nav-btn.active { background: var(--glyph-white); color: var(--bg-color); }
-
-    /* Controls Bar Top Right */
-    .top-right-controls {
-      position: absolute; top: 15px; right: 15px; z-index: 1000;
-      display: flex; gap: 8px; align-items: center;
-    }
-
-    .mode-btn, .admin-btn {
-      background: var(--panel-bg); border: 1px solid var(--border-color);
-      color: var(--glyph-white); padding: 8px 12px; font-size: 9px;
-      cursor: pointer; backdrop-filter: blur(12px); border-radius: 4px;
-      letter-spacing: 1px; transition: all 0.2s; font-family: 'Space Mono', monospace;
-    }
-    .mode-btn:hover, .admin-btn:hover { border-color: var(--glyph-white); }
-    .admin-btn.active { border-color: var(--glyph-red); color: var(--glyph-red); }
-
-    /* Dashboard Panel Wrapper */
-    .dashboard-wrapper {
-      position: absolute; top: 15px; left: 15px; z-index: 1000;
-      width: 240px; display: flex; flex-direction: column; gap: 8px;
-      pointer-events: auto;
-    }
-
-    /* Dashboard Panel */
-    .dashboard {
-      background: var(--panel-bg); border: 1px solid var(--border-color);
-      backdrop-filter: blur(16px); padding: 14px; border-radius: 12px; width: 100%;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    }
-    .brand-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 8px; margin-bottom: 10px; }
-    .brand-title { font-size: 11px; letter-spacing: 1.5px; font-weight: bold; }
-    .red-dot { width: 6px; height: 6px; background-color: var(--glyph-red); border-radius: 50%; box-shadow: 0 0 8px var(--glyph-red); }
-    .stat-number { font-size: 28px; font-weight: bold; }
-    .stat-label { font-size: 9px; color: var(--text-muted); letter-spacing: 1px; }
-
-    /* Filter Chips */
-    .filter-container { margin-top: 12px; border-top: 1px dashed var(--border-color); padding-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
-    .filter-chip {
-      background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: var(--text-muted);
-      font-size: 10px; padding: 6px 9px; cursor: pointer; border-radius: 6px; letter-spacing: 0.5px; font-weight: bold;
-      transition: all 0.15s ease;
-    }
-    .filter-chip:hover, .filter-chip.active { background: var(--glyph-white); color: var(--bg-color); font-weight: bold; border-color: var(--glyph-white); }
-
-    /* Pack Drawer 抽屜 */
-    .pack-drawer {
-      display: none; width: 100%; background: var(--drawer-bg);
-      border: 1px solid var(--border-color); backdrop-filter: blur(20px);
-      border-radius: 12px; max-height: 45vh; overflow-y: auto; padding: 14px;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-      animation: smoothSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    @keyframes smoothSlideDown {
-      from { opacity: 0; transform: translateY(-12px) scale(0.98); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    .drawer-title { font-size: 10px; font-weight: bold; color: var(--glyph-white); letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px dashed var(--border-color); padding-bottom: 6px; }
-    .drawer-country { font-size: 10px; font-weight: bold; color: var(--glyph-white); margin-top: 8px; }
-    .drawer-cities { font-size: 9px; color: var(--text-muted); margin-bottom: 6px; line-height: 1.4; word-break: break-word; }
-
-    .manage-btn {
-      width: 100%; margin-top: 12px; background: transparent; border: 1px solid var(--border-color);
-      color: var(--text-muted); font-size: 8px; padding: 6px; cursor: pointer; letter-spacing: 0.8px; text-align: center;
-      border-radius: 6px; font-family: 'Space Mono', monospace; transition: all 0.2s;
-    }
-    .manage-btn:hover { border-color: var(--glyph-white); color: var(--glyph-white); }
-
-    /* 底部探索進度條 */
-    .bottom-world-progress {
-      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 1000;
-      width: clamp(320px, 42vw, 520px); background: var(--panel-bg);
-      border: 1px solid var(--border-color); backdrop-filter: blur(20px);
-      padding: 10px 18px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      display: flex; flex-direction: column; gap: 7px; pointer-events: auto;
-    }
-
-    .progress-text-row { display: flex; justify-content: space-between; align-items: center; font-size: 10px; letter-spacing: 1px; font-weight: bold; white-space: nowrap; }
-    .progress-title { color: var(--text-muted); }
-    .progress-val { color: var(--glyph-white); }
-
-    .energy-bar-bg { width: 100%; height: 4px; background: rgba(128, 128, 128, 0.2); border-radius: 3px; overflow: hidden; position: relative; }
-    .energy-bar-fill {
-      height: 100%; width: 0%; background: linear-gradient(90deg, #80D8FF 0%, var(--glyph-white) 50%, #38bdf8 100%);
-      border-radius: 3px; transition: width 1s cubic-bezier(0.16, 1, 0.3, 1); position: relative;
-    }
-
-    /* Modals */
-    .modal-overlay {
-      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 2000;
+    #instructions {
+      position: absolute; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6); color: white;
+      display: flex; flex-direction: column;
       justify-content: center; align-items: center;
-    }
-    .modal {
-      background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--glyph-white);
-      padding: 20px; width: 340px; max-height: 80vh; overflow-y: auto; border-radius: 8px; box-shadow: 0 0 40px rgba(0,0,0,0.6);
-    }
-    .modal h3 { font-size: 11px; margin-bottom: 12px; letter-spacing: 1px; color: var(--glyph-white); border-bottom: 1px dashed var(--border-color); padding-bottom: 8px; }
-    .modal label { font-size: 9px; color: var(--text-muted); letter-spacing: 1px; display: block; margin-top: 10px; margin-bottom: 4px; font-weight: bold; }
-    .modal input, .modal select {
-      width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color);
-      color: var(--glyph-white); padding: 8px; margin-bottom: 8px; font-size: 11px;
-      font-family: 'Space Mono', monospace; border-radius: 4px; user-select: text;
-    }
-    .setting-group { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
-    .setting-opt {
-      flex: 1; min-width: 90px; padding: 8px; border: 1px solid var(--border-color); background: transparent;
-      color: var(--text-muted); font-size: 10px; font-weight: bold; cursor: pointer; border-radius: 4px; text-align: center;
-      transition: all 0.2s;
-    }
-    .setting-opt.active { background: var(--glyph-white); color: var(--bg-color); border-color: var(--glyph-white); }
-
-    .modal-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
-    .btn { flex: 1; padding: 8px; background: var(--glyph-white); color: var(--bg-color); border: none; font-weight: bold; cursor: pointer; font-size: 10px; letter-spacing: 1px; border-radius: 4px; }
-    .btn-cancel { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); }
-
-    /* Country Cards View */
-    .cards-view-overlay { display: none; position: fixed; top: 75px; left: 0; width: 100vw; height: calc(100vh - 75px); z-index: 850; background: var(--canvas-bg); padding: 20px 20px 80px 20px; overflow-y: auto; }
-    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; max-width: 1100px; margin: 0 auto; }
-    
-    .flip-card-container { height: 380px; cursor: pointer; border-radius: 20px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 15px 35px rgba(0,0,0,0.3); transition: transform 0.3s ease, border-color 0.3s ease; }
-    .flip-card-container:hover { transform: translateY(-4px); border-color: var(--glyph-white); }
-    .deep-card-front { width: 100%; height: 100%; background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; position: relative; }
-    .deep-card-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.65) 45%, rgba(0,0,0,0.95) 100%); z-index: 1; }
-    .deep-card-content { position: relative; z-index: 2; }
-    .deep-card-title { font-size: 22px; font-weight: 700; letter-spacing: 1px; color: #ffffff; margin-bottom: 6px; }
-    .deep-card-cities { font-size: 11px; color: #d0d0d0; line-height: 1.5; margin-bottom: 10px; min-height: 33px; }
-    .click-zoom-hint { font-size: 8px; color: var(--glyph-red); letter-spacing: 1px; font-weight: bold; }
-
-    /* 80% 螢幕大彈窗 (Pop-up Modal Overlay) */
-    .subdivision-modal-overlay {
-      display: none; position: fixed; inset: 0; width: 100vw; height: 100vh;
-      background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(20px); z-index: 2500;
-      justify-content: center; align-items: center;
-      animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-    .subdivision-modal-container {
-      width: 80vw; height: 80vh; background: var(--drawer-bg);
-      border: 1px solid var(--border-color); border-radius: 24px;
-      display: flex; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.8);
-      position: relative; animation: popUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    @keyframes popUp { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-    /* 按 ESC 返回標籤 */
-    .esc-close-btn {
-      position: absolute; top: 20px; right: 24px; z-index: 10;
-      background: rgba(255,255,255,0.06); border: 1px solid var(--border-color);
-      color: var(--glyph-white); font-size: 10px; font-weight: bold;
-      padding: 8px 16px; border-radius: 20px; cursor: pointer; letter-spacing: 1.5px;
-      transition: all 0.2s ease;
-    }
-    .esc-close-btn:hover { background: var(--glyph-white); color: var(--bg-color); }
-
-    /* 左邊 20% Flag & Info */
-    .modal-left-panel {
-      width: 20%; height: 100%; border-right: 1px dashed var(--border-color);
-      padding: 30px 20px; display: flex; flex-direction: column; align-items: center;
-      justify-content: flex-start; text-align: center; background: rgba(0,0,0,0.2);
-    }
-    .modal-flag-img { width: 100%; max-width: 140px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-bottom: 20px; }
-    .modal-country-title { font-size: 20px; font-weight: bold; letter-spacing: 2px; color: var(--glyph-white); margin-bottom: 6px; }
-    .modal-country-sub { font-size: 10px; color: var(--glyph-red); letter-spacing: 1px; margin-bottom: 20px; font-weight: bold; }
-    .modal-city-list-box { width: 100%; text-align: left; border-top: 1px dashed var(--border-color); padding-top: 15px; overflow-y: auto; }
-    .modal-city-title { font-size: 9px; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 8px; font-weight: bold; }
-    .modal-city-item { font-size: 10px; color: var(--glyph-white); margin-bottom: 4px; font-weight: bold; display: flex; align-items: center; gap: 6px; }
-    .modal-city-item::before { content: '›'; color: var(--glyph-red); font-weight: bold; }
-
-    /* 右邊 80% Super Map */
-    .modal-right-map {
-      width: 80%; height: 100%; display: flex; justify-content: center; align-items: center;
-      padding: 30px; position: relative; background: var(--canvas-bg);
-    }
-    .modal-right-map svg { width: 100%; height: 100%; max-height: 100%; }
-
-    @media (max-width: 900px) {
-      .subdivision-modal-container { width: 92vw; height: 90vh; flex-direction: column; }
-      .modal-left-panel { width: 100%; height: 35%; border-right: none; border-bottom: 1px dashed var(--border-color); padding: 15px; flex-direction: row; gap: 15px; text-align: left; }
-      .modal-flag-img { width: 90px; height: 60px; margin-bottom: 0; }
-      .modal-right-map { width: 100%; height: 65%; padding: 15px; }
+      cursor: pointer; z-index: 15;
     }
   </style>
+  <!-- 載入 Three.js & PeerJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 
-  <!-- Tooltip 懸浮框 -->
-  <div class="country-tooltip" id="country-tooltip"></div>
+  <div id="crosshair"></div>
 
-  <!-- 朦朧頂部擋板 -->
-  <div class="top-blur-mask"></div>
-
-  <!-- Top Navigation Bar -->
-  <div class="top-nav">
-    <button class="nav-btn active" id="btn-world" onclick="playClickSound(); switchView('MAP')">[ WORLD MAP ]</button>
-    <button class="nav-btn" id="btn-cards" onclick="playClickSound(); switchView('CARDS')">[ COUNTRY CARDS ]</button>
-  </div>
-
-  <!-- Controls Bar Top Right -->
-  <div class="top-right-controls">
-    <button class="mode-btn" onclick="playClickSound(); openSettingsModal()">⚙️ SETTINGS</button>
-    <button class="admin-btn" id="admin-btn" onclick="playClickSound(); openLoginModal()">[ LOGIN ]</button>
-  </div>
-
-  <!-- Dashboard Panel Wrapper -->
-  <div class="dashboard-wrapper">
-    <div class="dashboard" id="main-dashboard">
-      <div class="brand-header">
-        <span class="brand-title">Travel Map</span>
-        <div class="red-dot"></div>
-      </div>
-      <div class="stat-number" id="city-count">00</div>
-      <div class="stat-label">CITIES UNLOCKED</div>
-
-      <div class="filter-container">
-        <div class="filter-chip active" onclick="playClickSound(); setFilter('ALL', this)">ALL</div>
-        <div class="filter-chip" onclick="playClickSound(); setFilter('ASIA', this)">ASIA</div>
-        <div class="filter-chip" onclick="playClickSound(); setFilter('EUROPE', this)">EUROPE</div>
-        <div class="filter-chip" onclick="playClickSound(); setFilter('AMERICAS', this)">AMERICAS</div>
-        <div class="filter-chip" onclick="playClickSound(); setFilter('AFRICA', this)">AFRICA</div>
-        <div class="filter-chip" onclick="playClickSound(); setFilter('OCEANIA', this)">OCEANIA</div>
-      </div>
-
-      <button class="manage-btn" onclick="playClickSound(); openManageModal()">[ EDIT / DELETE CITIES ]</button>
+  <!-- 連線設定面板 -->
+  <div id="connection-panel">
+    <div><strong>你的房間 ID:</strong> <span id="my-id" style="color: #00ffcc;">建立中...</span></div>
+    <div style="margin-top: 10px;">
+      <input type="text" id="target-id" placeholder="貼上對方的房間 ID">
+      <button id="connect-btn">連線對戰</button>
     </div>
-
-    <!-- Filter 抽屜選單 -->
-    <div class="pack-drawer" id="pack-drawer">
-      <div class="drawer-title" id="drawer-title">REGION // PACK</div>
-      <div id="drawer-content"></div>
-    </div>
+    <div style="margin-top: 5px; font-size: 12px; color: #aaa;" id="status">等待連線...</div>
   </div>
 
-  <!-- 底部探索進度條 -->
-  <div class="bottom-world-progress" id="world-progress-bar">
-    <div class="progress-text-row">
-      <span class="progress-title">WORLD EXPLORED</span>
-      <span class="progress-val" id="world-progress-text">0 / 195 COUNTRIES (0.0%)</span>
-    </div>
-    <div class="energy-bar-bg">
-      <div class="energy-bar-fill" id="world-progress-fill"></div>
-    </div>
+  <div id="ui">
+    當前武器: <span id="weapon-name">Rifle (AK-47)</span> (按 1 / 2 切換)
   </div>
 
-  <!-- Settings Modal -->
-  <div class="modal-overlay" id="settings-modal">
-    <div class="modal">
-      <h3>MAP & VISUAL SETTINGS</h3>
-      
-      <label>PROJECTION MODE (地圖模式)</label>
-      <div class="setting-group">
-        <button class="setting-opt active" id="opt-2d" onclick="playClickSound(); applySettingMode('2D')">2D MAP</button>
-        <button class="setting-opt" id="opt-3d" onclick="playClickSound(); applySettingMode('3D')">3D GLOBE</button>
-      </div>
-
-      <label>COLOR THEME (視覺主題)</label>
-      <div class="setting-group">
-        <button class="setting-opt active" id="opt-theme-noir" onclick="playClickSound(); applyTheme('noir')">黑白經典</button>
-        <button class="setting-opt" id="opt-theme-sand" onclick="playClickSound(); applyTheme('sand')">沙白黃金</button>
-        <button class="setting-opt" id="opt-theme-specx" onclick="playClickSound(); applyTheme('specx')">深海凍土</button>
-      </div>
-
-      <label>SHOW CITY NAMES (顯示城市名稱)</label>
-      <div class="setting-group">
-        <button class="setting-opt active" id="opt-labels-on" onclick="playClickSound(); toggleCityLabels(true)">ON (顯示)</button>
-        <button class="setting-opt" id="opt-labels-off" onclick="playClickSound(); toggleCityLabels(false)">OFF (純光點)</button>
-      </div>
-
-      <label>REAL-TIME SUNLIGHT (實時日照)</label>
-      <div class="setting-group">
-        <button class="setting-opt active" id="opt-sun-off" onclick="playClickSound(); toggleSunlight(false)">OFF (極速)</button>
-        <button class="setting-opt" id="opt-sun-on" onclick="playClickSound(); toggleSunlight(true)">ON (日照區域)</button>
-      </div>
-
-      <div class="modal-actions">
-        <button class="btn" onclick="playClickSound(); closeSettingsModal()">DONE</button>
-      </div>
-    </div>
+  <div id="instructions">
+    <h1>連線成功後點擊畫面開始</h1>
+    <p>W, A, S, D 移動 | 滑鼠瞄準 | 左鍵開槍 | 1, 2 切換武器</p>
   </div>
-
-  <!-- Login Modal -->
-  <div class="modal-overlay" id="login-modal">
-    <div class="modal">
-      <h3>ADMIN // AUTHENTICATION</h3>
-      <label>EMAIL</label>
-      <input type="email" id="login-email" placeholder="admin@example.com">
-      <label>PASSWORD</label>
-      <input type="password" id="login-password" placeholder="••••••••">
-      <div class="modal-actions">
-        <button class="btn btn-cancel" onclick="playClickSound(); closeLoginModal()">CANCEL</button>
-        <button class="btn" id="login-submit-btn" onclick="playClickSound(); handleLogin()">LOGIN</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Add City Modal -->
-  <div class="modal-overlay" id="add-city-modal">
-    <div class="modal">
-      <h3>ADD NEW UNLOCKED CITY</h3>
-      <label>COORDINATES (LAT, LNG)</label>
-      <input type="text" id="add-coords" placeholder="e.g. 35.67, 139.65">
-      <label>CITY NAME</label>
-      <input type="text" id="add-city-name" placeholder="e.g. TOKYO">
-      <label>COUNTRY NAME</label>
-      <input type="text" id="add-country-name" placeholder="e.g. JAPAN">
-      <label>REGION / CONTINENT</label>
-      <select id="add-region">
-        <option value="ASIA">ASIA (赤紅光)</option>
-        <option value="EUROPE">EUROPE (冰藍光)</option>
-        <option value="AMERICAS">AMERICAS (純白光)</option>
-        <option value="AFRICA">AFRICA (琥珀黃)</option>
-        <option value="OCEANIA">OCEANIA (翡翠綠)</option>
-      </select>
-      <div class="modal-actions">
-        <button class="btn btn-cancel" onclick="playClickSound(); closeAddCityModal()">CANCEL</button>
-        <button class="btn" onclick="playClickSound(); confirmAddCity()">SAVE CITY</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Manage Modal -->
-  <div class="modal-overlay" id="manage-modal">
-    <div class="modal">
-      <h3>MANAGE UNLOCKED CITIES</h3>
-      <div id="city-list-container"></div>
-      <div class="modal-actions">
-        <button class="btn btn-cancel" onclick="playClickSound(); closeManageModal()">CLOSE</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Country Cards View -->
-  <div class="cards-view-overlay" id="cards-view">
-    <div class="cards-grid" id="cards-container"></div>
-  </div>
-
-  <!-- 80% 螢幕特大行政分區視窗 (Pop-Up Modal Overlay) -->
-  <div class="subdivision-modal-overlay" id="subdivision-pop-modal">
-    <div class="subdivision-modal-container">
-      <button class="esc-close-btn" onclick="closeSubdivisionModal()">[ ESC / CLOSE ]</button>
-      
-      <!-- 左邊 20% -->
-      <div class="modal-left-panel">
-        <img class="modal-flag-img" id="pop-flag-img" src="" alt="flag">
-        <div class="modal-country-title" id="pop-country-title">#JAPAN</div>
-        <div class="modal-country-sub" id="pop-country-sub">REGIONAL MAP</div>
-        <div class="modal-city-list-box">
-          <div class="modal-city-title">UNLOCKED CITIES:</div>
-          <div id="pop-city-list"></div>
-        </div>
-      </div>
-
-      <!-- 右邊 80% -->
-      <div class="modal-right-map" id="pop-map-container"></div>
-    </div>
-  </div>
-
-  <canvas id="world-canvas"></canvas>
 
   <script>
-    /* 防快捷鍵模組 */
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') {
-        closeSubdivisionModal();
-      }
-      if (
-        e.key === 'F12' ||
-        (e.ctrlKey && e.shiftKey && ['I','i','J','j','C','c'].includes(e.key)) ||
-        (e.metaKey && e.altKey && ['I','i','J','j','C','c'].includes(e.key)) ||
-        (e.ctrlKey && ['U','u','S','s'].includes(e.key)) ||
-        (e.metaKey && ['U','u','S','s'].includes(e.key))
-      ) {
-        e.preventDefault(); e.stopPropagation(); return false;
-      }
-    });
+    let scene, camera, renderer, controls;
+    let peer, conn;
+    let enemyMesh;
+    let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+    let prevTime = performance.now();
+    const velocity = new THREE.Vector3();
+    const direction = new THREE.Vector3();
 
-    const SUPABASE_URL = 'https://pmrhldqgabasvohsupbn.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_R9BjF5Dl_puhHVzvPwd7sA_vwRJwO_E';
-
-    let supabaseClient = null;
-    try {
-      if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } catch(e){}
-
-    let audioCtx = null;
-    function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-    function playHoverSound() {
-      try {
-        initAudio(); if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-        osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.04);
-        gain.gain.setValueAtTime(0.015, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.04);
-        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.04);
-      } catch(e){}
-    }
-    function playClickSound() {
-      try {
-        initAudio(); if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-        osc.type = 'triangle'; osc.frequency.setValueAtTime(320, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.06);
-        gain.gain.setValueAtTime(0.04, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.06);
-        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.06);
-      } catch(e){}
-    }
-
-    let currentUser = null;
-    let visitedCities = [];
-    let currentFilter = 'ALL';
-    let mapMode = '2D';
-    let currentTheme = localStorage.getItem('tm_theme') || 'noir';
-    let isSunlightOn = false;
-    let showCityLabels = localStorage.getItem('tm_show_labels') !== 'false';
-
-    const TOTAL_WORLD_COUNTRIES = 195;
-
-    const STATIC_LANDMARKS = {
-      'CANADA': 'https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=800&auto=format&fit=crop',
-      'CHINA': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800&auto=format&fit=crop',
-      'JAPAN': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&auto=format&fit=crop',
-      'NEW ZEALAND': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&auto=format&fit=crop',
-      'THAILAND': 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=800&auto=format&fit=crop',
-      'TAIWAN': 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=800&auto=format&fit=crop',
-      'USA': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
-      'UNITED STATES': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=800&auto=format&fit=crop',
-      'FIJI': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&auto=format&fit=crop',
-      'AUSTRALIA': 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800&auto=format&fit=crop',
-      'KOREA': 'https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800&auto=format&fit=crop',
-      'SOUTH KOREA': 'https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800&auto=format&fit=crop',
-      'SINGAPORE': 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=800&auto=format&fit=crop',
-      'MALAYSIA': 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=800&auto=format&fit=crop',
-      'GERMANY': 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800&auto=format&fit=crop',
-      'ITALY': 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=800&auto=format&fit=crop',
-      'SWITZERLAND': 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=800&auto=format&fit=crop',
-      'NORWAY': 'https://images.unsplash.com/photo-1507272931001-fc06c17e4f43?w=800&auto=format&fit=crop',
-      'ICELAND': 'https://images.unsplash.com/photo-1504893524553-b855bce32c67?w=800&auto=format&fit=crop',
-      'FINLAND': 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&auto=format&fit=crop',
-      'NETHERLANDS': 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=800&auto=format&fit=crop',
-      'MALDIVES': 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&auto=format&fit=crop',
-      'VATICAN CITY': 'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=800&auto=format&fit=crop',
-      'VATICAN': 'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=800&auto=format&fit=crop',
-      '梵蒂岡': 'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=800&auto=format&fit=crop'
+    // 武器資料
+    const weapons = {
+      rifle: { name: 'Rifle (AK-47)', color: 0x8B4513, length: 0.8 },
+      pistol: { name: 'Pistol (Glock)', color: 0x333333, length: 0.3 }
     };
+    let currentWeaponKey = 'rifle';
+    let gunMesh;
 
-    const COUNTRY_FLAG_CODES = {
-      'CANADA': 'ca', 'CHINA': 'cn', 'JAPAN': 'jp', 'NEW ZEALAND': 'nz', 'THAILAND': 'th', 'TAIWAN': 'tw',
-      'USA': 'us', 'UNITED STATES': 'us', 'FIJI': 'fj', 'AUSTRALIA': 'au', 'MACAU': 'mo', 'HONG KONG': 'hk',
-      'KOREA': 'kr', 'SOUTH KOREA': 'kr', 'SINGAPORE': 'sg', 'MALAYSIA': 'my', 'GERMANY': 'de',
-      'ITALY': 'it', 'SWITZERLAND': 'ch', 'NORWAY': 'no', 'ICELAND': 'is', 'FINLAND': 'fi',
-      'NETHERLANDS': 'nl', 'MALDIVES': 'mv', 'UNITED KINGDOM': 'gb', 'UK': 'gb', 'FRANCE': 'fr', 'VATICAN CITY': 'va', 'VATICAN': 'va'
-    };
+    init3D();
+    initPeer();
+    animate();
 
-    const COUNTRY_CN_NAME = {
-      'JAPAN': '日本', 'CHINA': '中國', 'TAIWAN': '台灣', 'HONG KONG': '香港', 'MACAU': '澳門',
-      'SOUTH KOREA': '韓國', 'KOREA': '韓國', 'THAILAND': '泰國', 'VIETNAM': '越南', 'MALAYSIA': '馬來西亞', 'SINGAPORE': '新加坡',
-      'USA': '美國', 'UNITED STATES': '美國', 'CANADA': '加拿大', 'AUSTRALIA': '澳洲', 'NEW ZEALAND': '紐西蘭',
-      'GERMANY': '德國', 'FRANCE': '法國', 'ITALY': '義大利', 'SWITZERLAND': '瑞士', 'NORWAY': '挪威',
-      'ICELAND': '冰島', 'FINLAND': '芬蘭', 'NETHERLANDS': '荷蘭', 'MALDIVES': '馬爾地夫', 'FIJI': '斐濟', 'VATICAN CITY': '梵蒂岡', 'VATICAN': '梵蒂岡'
-    };
+    // --- 1. Three.js 3D 場景建構 ---
+    function init3D() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x87ceeb);
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-    const REGION_COLORS = {
-      'ASIA': { core: '#FF5252', glow: 'rgba(255, 82, 82, ' },
-      'EUROPE': { core: '#00E5FF', glow: 'rgba(0, 229, 255, ' },
-      'AMERICAS': { core: '#FFFFFF', glow: 'rgba(255, 255, 255, ' },
-      'AFRICA': { core: '#FFD740', glow: 'rgba(255, 215, 64, ' },
-      'OCEANIA': { core: '#69F0AE', glow: 'rgba(105, 240, 174, ' }
-    };
+      // 光線
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(20, 40, 20);
+      scene.add(dirLight);
 
-    const REGION_TARGETS = {
-      'ALL': { lng: 0, lat: 20, zoom: 1.0 },
-      'ASIA': { lng: 113.5439, lat: 22.1987, zoom: 1.8 },
-      'EUROPE': { lng: 12.4964, lat: 41.9028, zoom: 2.2 },
-      'AMERICAS': { lng: -75.6972, lat: 45.4215, zoom: 1.5 },
-      'AFRICA': { lng: 15.2663, lat: -4.4419, zoom: 1.6 },
-      'OCEANIA': { lng: 174.7633, lat: -36.8485, zoom: 1.8 }
-    };
+      // 地板
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(100, 100),
+        new THREE.MeshLambertMaterial({ color: 0x555555 })
+      );
+      floor.rotation.x = -Math.PI / 2;
+      scene.add(floor);
 
-    let currentCenter = [0, 20];
-    let targetCenter = [0, 20];
-    let currentScale = 1.0;
-    let targetScale = 1.0;
-
-    function cleanCountryName(str) { return str ? str.toString().toUpperCase().replace(/\s+/g, ' ').trim() : 'UNKNOWN'; }
-
-    function getCountryImageUrl(countryName) {
-      const cleaned = cleanCountryName(countryName);
-      if (STATIC_LANDMARKS[cleaned]) return STATIC_LANDMARKS[cleaned];
-      return `https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&auto=format&fit=crop`;
-    }
-
-    function updateWorldProgress() {
-      const visitedCountrySet = new Set(visitedCities.map(c => cleanCountryName(c.country)));
-      const visitedCount = visitedCountrySet.size;
-      const percent = ((visitedCount / TOTAL_WORLD_COUNTRIES) * 100).toFixed(1);
-      document.getElementById('world-progress-text').innerText = `${visitedCount} / ${TOTAL_WORLD_COUNTRIES} COUNTRIES (${percent}%)`;
-      document.getElementById('world-progress-fill').style.width = `${Math.min(100, percent)}%`;
-    }
-
-    function openSettingsModal() { document.getElementById('settings-modal').style.display = 'flex'; }
-    function closeSettingsModal() { document.getElementById('settings-modal').style.display = 'none'; }
-    function openLoginModal() { document.getElementById('login-modal').style.display = 'flex'; }
-    function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
-    function openManageModal() { renderCityManageList(); document.getElementById('manage-modal').style.display = 'flex'; }
-    function closeManageModal() { document.getElementById('manage-modal').style.display = 'none'; }
-    function closeAddCityModal() { document.getElementById('add-city-modal').style.display = 'none'; }
-
-    function openAddCityModal(lat, lng) {
-      if (lat !== undefined && lng !== undefined) {
-        document.getElementById('add-coords').value = `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
-        if (lng > 60 && lng < 150 && lat > 0) document.getElementById('add-region').value = 'ASIA';
-        else if (lng > -15 && lng < 50 && lat > 35) document.getElementById('add-region').value = 'EUROPE';
-        else if (lng < -30) document.getElementById('add-region').value = 'AMERICAS';
-        else if (lng > -20 && lng < 55 && lat <= 35 && lat > -35) document.getElementById('add-region').value = 'AFRICA';
-        else if (lng >= 110 && lat < 0) document.getElementById('add-region').value = 'OCEANIA';
-      } else {
-        document.getElementById('add-coords').value = '';
-      }
-      document.getElementById('add-city-name').value = '';
-      document.getElementById('add-country-name').value = '';
-      document.getElementById('add-city-modal').style.display = 'flex';
-    }
-
-    async function handleLogin() {
-      const email = document.getElementById('login-email').value.trim();
-      const password = document.getElementById('login-password').value.trim();
-      const submitBtn = document.getElementById('login-submit-btn');
-
-      if (!email || !password) return alert('請輸入 Email 與 Password！');
-      if (!supabaseClient) return alert("Supabase 初始化失敗！");
-
-      submitBtn.innerText = 'LOGGING IN...';
-      try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) {
-          alert('登入失敗: ' + error.message);
-          submitBtn.innerText = 'LOGIN';
-        } else {
-          currentUser = data.user;
-          document.getElementById('admin-btn').innerText = '[ ADMIN ON ]';
-          document.getElementById('admin-btn').classList.add('active');
-          submitBtn.innerText = 'LOGIN';
-          closeLoginModal();
-          alert('登入成功！你現在可以雙擊地圖新增城市。');
-        }
-      } catch(e) {
-        alert('登入出錯: ' + e.message);
-        submitBtn.innerText = 'LOGIN';
-      }
-    }
-
-    function setFilter(region, element) {
-      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-      element.classList.add('active');
-      currentFilter = region;
-
-      lastUserActionTime = Date.now();
-      targetPan = { x: 0, y: 0 }; panOffset = { x: 0, y: 0 };
-
-      const target = REGION_TARGETS[region] || REGION_TARGETS['ALL'];
-      targetCenter = [target.lng, target.lat];
-      targetScale = target.zoom;
-
-      if (mapMode === '3D') rotation = [-targetCenter[0], -targetCenter[1]];
-
-      const drawer = document.getElementById('pack-drawer');
-      const drawerTitle = document.getElementById('drawer-title');
-      const drawerContent = document.getElementById('drawer-content');
-
-      if (region === 'ALL') {
-        drawer.style.display = 'none'; return;
+      // 掩體/障礙物
+      for(let i = 0; i < 12; i++) {
+        const box = new THREE.Mesh(
+          new THREE.BoxGeometry(2, 2, 2),
+          new THREE.MeshLambertMaterial({ color: 0x888888 })
+        );
+        box.position.set((Math.random() - 0.5) * 40, 1, (Math.random() - 0.5) * 40);
+        scene.add(box);
       }
 
-      drawerTitle.innerText = `${region} // EXPLORED`;
-      drawerContent.innerHTML = '';
+      // 建立敵方玩家模型 (預設隱藏)
+      enemyMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.8, 1.8, 0.8),
+        new THREE.MeshLambertMaterial({ color: 0xff0000 })
+      );
+      enemyMesh.position.set(0, -100, 0); // 先藏在地下
+      scene.add(enemyMesh);
 
-      const filtered = visitedCities.filter(c => cleanCountryName(c.region) === region);
-      const grouped = {};
-      filtered.forEach(c => {
-        const country = cleanCountryName(c.country);
-        if (!grouped[country]) grouped[country] = [];
-        grouped[country].push(c.city_name);
+      // 控制器
+      controls = new THREE.PointerLockControls(camera, document.body);
+      const instructions = document.getElementById('instructions');
+      instructions.addEventListener('click', () => controls.lock());
+      controls.addEventListener('lock', () => { instructions.style.display = 'none'; });
+      controls.addEventListener('unlock', () => { instructions.style.display = 'flex'; });
+      scene.add(controls.getObject());
+
+      createGunMesh();
+
+      // 事件監聽
+      document.addEventListener('keydown', onKeyDown);
+      document.addEventListener('keyup', onKeyUp);
+      document.addEventListener('mousedown', onShoot);
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+    }
+
+    function createGunMesh() {
+      if (gunMesh) camera.remove(gunMesh);
+      const w = weapons[currentWeaponKey];
+      gunMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.1, 0.1, w.length),
+        new THREE.MeshLambertMaterial({ color: w.color })
+      );
+      gunMesh.position.set(0.2, -0.2, -0.5);
+      camera.add(gunMesh);
+      document.getElementById('weapon-name').innerText = w.name;
+    }
+
+    // --- 2. PeerJS P2P 連線 ---
+    function initPeer() {
+      peer = new Peer();
+
+      peer.on('open', (id) => {
+        document.getElementById('my-id').innerText = id;
       });
 
-      const countries = Object.keys(grouped);
-      if (countries.length === 0) {
-        drawerContent.innerHTML = '<div style="font-size:9px; color:var(--text-muted);">NO CITIES IN THIS REGION YET.</div>';
-      } else {
-        countries.forEach(country => {
-          const div = document.createElement('div');
-          div.innerHTML = `
-            <div class="drawer-country">> ${country}</div>
-            <div class="drawer-cities">${grouped[country].join(', ')}</div>
-          `;
-          drawerContent.appendChild(div);
-        });
-      }
+      // 接收來自對方的連線 (Host)
+      peer.on('connection', (incoming) => {
+        conn = incoming;
+        bindConnEvents();
+        document.getElementById('status').innerText = '玩家已連入！';
+      });
 
-      drawer.style.display = 'block';
-      drawer.style.animation = 'none';
-      drawer.offsetHeight;
-      drawer.style.animation = 'smoothSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+      // 主動連線對手 (Client)
+      document.getElementById('connect-btn').addEventListener('click', () => {
+        const targetId = document.getElementById('target-id').value.trim();
+        if (!targetId) return alert('請貼上對方的房間 ID');
+        document.getElementById('status').innerText = '正在連線中...';
+        conn = peer.connect(targetId);
+        bindConnEvents();
+      });
     }
 
-    function applySettingMode(mode) {
-      mapMode = mode;
-      document.getElementById('opt-2d').classList.toggle('active', mode === '2D');
-      document.getElementById('opt-3d').classList.toggle('active', mode === '3D');
-      if (mode === '3D') {
-        projection = d3.geoOrthographic().scale(Math.min(width, height) / 2.4).translate([width / 2, height / 2]).clipAngle(90);
-        rotation = [-currentCenter[0], -currentCenter[1]];
-        projection.rotate([rotation[0], rotation[1]]);
-      } else {
-        projection = d3.geoMercator().center(currentCenter).scale((width / 6.5) * currentScale).translate([width / 2, height / 2]);
-      }
-      pathGenerator.projection(projection);
-    }
+    function bindConnEvents() {
+      conn.on('open', () => {
+        document.getElementById('status').innerText = 'P2P 連線成功！可以開始對戰！';
+      });
 
-    function applyTheme(theme) {
-      currentTheme = theme;
-      localStorage.setItem('tm_theme', theme);
-      document.getElementById('opt-theme-noir').classList.toggle('active', theme === 'noir');
-      document.getElementById('opt-theme-sand').classList.toggle('active', theme === 'sand');
-      document.getElementById('opt-theme-specx').classList.toggle('active', theme === 'specx');
-
-      document.body.classList.remove('theme-sand', 'theme-specx');
-      if (theme === 'sand') document.body.classList.add('theme-sand');
-      else if (theme === 'specx') document.body.classList.add('theme-specx');
-    }
-
-    function toggleCityLabels(enable) {
-      showCityLabels = enable;
-      localStorage.setItem('tm_show_labels', enable);
-      document.getElementById('opt-labels-on').classList.toggle('active', enable);
-      document.getElementById('opt-labels-off').classList.toggle('active', !enable);
-    }
-
-    function toggleSunlight(enable) {
-      isSunlightOn = enable;
-      document.getElementById('opt-sun-off').classList.toggle('active', !enable);
-      document.getElementById('opt-sun-on').classList.toggle('active', enable);
-    }
-
-    function getSolarPosition() {
-      const now = new Date();
-      const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
-      const declination = -23.44 * Math.cos((2 * Math.PI / 365) * (dayOfYear + 10));
-      const utcHours = now.getUTCHours() + now.getUTCMinutes() / 60;
-      const sunLng = (12 - utcHours) * 15;
-      return [sunLng, declination];
-    }
-
-    const canvas = document.getElementById('world-canvas');
-    const ctx = canvas.getContext('2d');
-
-    let width = canvas.width = window.innerWidth;
-    let height = canvas.height = window.innerHeight;
-
-    let zoomLevel = 1.0; let targetZoom = 1.0;
-    let panOffset = { x: 0, y: 0 }; let targetPan = { x: 0, y: 0 };
-    let rotation = [0, 0]; let isDragging = false; let dragStart = { x: 0, y: 0 };
-    let lastUserActionTime = Date.now(); const IDLE_ROTATION_DELAY = 3000;
-
-    let hoveredCountryFeature = null; let hoverTimer = null;
-    const tooltipEl = document.getElementById('country-tooltip');
-
-    let projection = d3.geoMercator().center(currentCenter).scale(width / 6.5).translate([width / 2, height / 2]);
-    const pathGenerator = d3.geoPath().projection(projection).context(ctx);
-
-    canvas.addEventListener('dblclick', (e) => {
-      playClickSound();
-      if (!currentUser) { alert('請先點擊右上角 [ LOGIN ] 登入管理員帳號！'); return; }
-
-      const rect = canvas.getBoundingClientRect();
-      let clickX = e.clientX - rect.left; let clickY = e.clientY - rect.top;
-
-      if (mapMode === '2D') { clickX = (clickX - panOffset.x); clickY = (clickY - panOffset.y); }
-      const coords = projection.invert([clickX, clickY]);
-      if (!coords) return;
-      openAddCityModal(coords[1], coords[0]);
-    });
-
-    canvas.addEventListener('pointerdown', e => { isDragging = true; dragStart = { x: e.clientX, y: e.clientY }; lastUserActionTime = Date.now(); });
-    canvas.addEventListener('pointermove', e => {
-      lastUserActionTime = Date.now();
-      if (isDragging) {
-        const dx = e.clientX - dragStart.x; const dy = e.clientY - dragStart.y;
-        if (mapMode === '3D') {
-          rotation[0] += dx * 0.4; rotation[1] -= dy * 0.4; projection.rotate([rotation[0], rotation[1]]);
-        } else {
-          panOffset.x += dx; panOffset.y += dy; targetPan.x = panOffset.x; targetPan.y = panOffset.y;
-        }
-        dragStart = { x: e.clientX, y: e.clientY }; return;
-      }
-      handlePointerHover(e, false);
-    });
-    canvas.addEventListener('pointerup', e => { isDragging = false; lastUserActionTime = Date.now(); handlePointerHover(e, true); });
-
-    function handlePointerHover(e, isTap = false) {
-      const rect = canvas.getBoundingClientRect();
-      let mouseX = e.clientX - rect.left; let mouseY = e.clientY - rect.top;
-      if (mapMode === '2D') { mouseX = (mouseX - panOffset.x); mouseY = (mouseY - panOffset.y); }
-
-      const coords = projection.invert([mouseX, mouseY]);
-      if (coords && worldGeoData) {
-        const countries = topojson.feature(worldGeoData, worldGeoData.objects.countries);
-        let found = null;
-        for (let feature of countries.features) { if (d3.geoContains(feature, coords)) { found = feature; break; } }
-
-        if (found !== hoveredCountryFeature || isTap) {
-          hoveredCountryFeature = found; clearTimeout(hoverTimer);
-          if (hoveredCountryFeature) {
-            playHoverSound();
-            const rawName = (hoveredCountryFeature.properties.name || '').toUpperCase().trim();
-            const countryNameCN = COUNTRY_CN_NAME[rawName] || null;
-            const displayName = countryNameCN ? `> ${rawName} / ${countryNameCN}` : `> ${rawName}`;
-            if (isTap || e.pointerType === 'touch') {
-              tooltipEl.innerText = displayName; tooltipEl.style.left = `${e.clientX}px`; tooltipEl.style.top = `${e.clientY}px`; tooltipEl.style.display = 'block';
-            } else {
-              tooltipEl.style.display = 'none';
-              hoverTimer = setTimeout(() => { tooltipEl.innerText = displayName; tooltipEl.style.left = `${e.clientX}px`; tooltipEl.style.top = `${e.clientY}px`; tooltipEl.style.display = 'block'; }, 2000);
-            }
-          } else { tooltipEl.style.display = 'none'; }
-        } else if (hoveredCountryFeature && tooltipEl.style.display === 'block') {
-          tooltipEl.style.left = `${e.clientX}px`; tooltipEl.style.top = `${e.clientY}px`;
-        }
-      } else { hoveredCountryFeature = null; clearTimeout(hoverTimer); tooltipEl.style.display = 'none'; }
-    }
-
-    canvas.addEventListener('wheel', e => {
-      e.preventDefault(); lastUserActionTime = Date.now();
-      const delta = e.deltaY < 0 ? 0.1 : -0.1;
-      targetScale = Math.max(0.6, Math.min(targetScale + delta, 6.0));
-    }, { passive: false });
-
-    window.addEventListener('resize', () => {
-      width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight;
-      if (mapMode === '3D') projection.scale(Math.min(width, height) / 2.4 * targetScale).translate([width / 2, height / 2]);
-      else projection.center(currentCenter).scale((width / 6.5) * currentScale).translate([width / 2, height / 2]);
-    });
-
-    let worldGeoData = null;
-    let globalSubdivisionsData = null;
-
-    fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
-      .then(res => res.json()).then(data => { 
-        worldGeoData = data; 
-        fetchVisitedCities(); 
-        applyTheme(currentTheme);
-        toggleCityLabels(showCityLabels);
-      }).catch(e => fetchVisitedCities());
-
-    fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_1_states_provinces.geojson')
-      .then(res => res.json())
-      .then(data => { globalSubdivisionsData = data; })
-      .catch(e => console.log('Subdivisions load bypass fallback'));
-
-    let pulseTime = 0;
-    function renderCanvas() {
-      pulseTime += 0.03;
-      currentCenter[0] += (targetCenter[0] - currentCenter[0]) * 0.08;
-      currentCenter[1] += (targetCenter[1] - currentCenter[1]) * 0.08;
-      currentScale += (targetScale - currentScale) * 0.08;
-
-      if (mapMode === '2D') {
-        panOffset.x += (targetPan.x - panOffset.x) * 0.1; 
-        panOffset.y += (targetPan.y - panOffset.y) * 0.1;
-        projection.center(currentCenter).scale((width / 6.5) * currentScale);
-      } else if (mapMode === '3D') {
-        if (!isDragging && (Date.now() - lastUserActionTime > IDLE_ROTATION_DELAY)) {
-          rotation[0] += 0.15;
-        } else {
-          rotation[0] += (-targetCenter[0] - rotation[0]) * 0.08;
-          rotation[1] += (-targetCenter[1] - rotation[1]) * 0.08;
-        }
-        projection.rotate([rotation[0], rotation[1]]);
-        projection.scale((Math.min(width, height) / 2.4) * currentScale);
-      }
-
-      const styles = getComputedStyle(document.body);
-      const canvasBg = styles.getPropertyValue('--canvas-bg').trim();
-      const landBg = styles.getPropertyValue('--land-bg').trim();
-      const strokeColor = styles.getPropertyValue('--stroke-color').trim();
-      const gridColor = styles.getPropertyValue('--grid-color').trim();
-      const labelTextColor = styles.getPropertyValue('--label-color').trim();
-      const labelStrokeColor = styles.getPropertyValue('--label-stroke').trim();
-
-      ctx.fillStyle = canvasBg; ctx.fillRect(0, 0, width, height);
-      ctx.save();
-      if (mapMode === '2D') { ctx.translate(panOffset.x, panOffset.y); }
-
-      ctx.fillStyle = gridColor;
-      for (let x = -width; x < width * 2; x += 24) {
-        for (let y = -height; y < height * 2; y += 24) {
-          ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI * 2); ctx.fill();
-        }
-      }
-
-      if (mapMode === '3D') {
-        const globeRadius = projection.scale(); const center = projection.translate();
-        ctx.beginPath(); ctx.arc(center[0], center[1], globeRadius + 1.5, 0, Math.PI * 2);
-        ctx.strokeStyle = currentTheme === 'specx' ? 'rgba(56, 189, 248, 0.4)' : (currentTheme === 'sand' ? 'rgba(181, 168, 149, 0.6)' : 'rgba(255, 255, 255, 0.25)');
-        ctx.lineWidth = 1; ctx.stroke();
-        ctx.beginPath(); ctx.arc(center[0], center[1], globeRadius, 0, Math.PI * 2);
-        ctx.fillStyle = landBg; ctx.fill();
-      }
-
-      if (window.topojson && worldGeoData) {
-        const countries = topojson.feature(worldGeoData, worldGeoData.objects.countries);
-        ctx.beginPath(); pathGenerator(countries); ctx.fillStyle = landBg; ctx.fill();
-        ctx.strokeStyle = strokeColor; ctx.lineWidth = 0.8; ctx.stroke();
-
-        const visitedCountrySet = new Set(visitedCities.map(c => cleanCountryName(c.country)));
-        countries.features.forEach(feature => {
-          const countryName = (feature.properties.name || '').toUpperCase();
-          if (visitedCountrySet.has(countryName)) {
-            ctx.beginPath(); pathGenerator(feature);
-            ctx.fillStyle = currentTheme === 'specx' ? 'rgba(56, 189, 248, 0.25)' : (currentTheme === 'sand' ? 'rgba(200, 50, 38, 0.15)' : 'rgba(255, 255, 255, 0.08)');
-            ctx.fill();
-            ctx.strokeStyle = currentTheme === 'specx' ? 'rgba(56, 189, 248, 0.7)' : (currentTheme === 'sand' ? 'rgba(200, 50, 38, 0.5)' : 'rgba(255, 255, 255, 0.3)');
-            ctx.stroke();
-          }
-        });
-
-        if (isSunlightOn) {
-          const sunPos = getSolarPosition();
-          const sunCircle = d3.geoCircle().center(sunPos).radius(89)();
-          ctx.beginPath(); pathGenerator(sunCircle);
-          ctx.fillStyle = currentTheme === 'sand' ? 'rgba(255, 220, 100, 0.2)' : 'rgba(255, 255, 200, 0.12)';
-          ctx.fill();
-        }
-
-        if (hoveredCountryFeature) {
-          ctx.beginPath(); pathGenerator(hoveredCountryFeature);
-          ctx.fillStyle = currentTheme === 'sand' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.22)'; ctx.fill();
-          ctx.strokeStyle = currentTheme === 'sand' ? '#1a1714' : '#ffffff'; ctx.lineWidth = 1.2; ctx.stroke();
-        }
-      }
-
-      visitedCities.forEach(city => {
-        const regionKey = cleanCountryName(city.region);
-        if (currentFilter !== 'ALL' && regionKey !== currentFilter) return;
-        const pt = projection([city.lng, city.lat]); if (!pt) return;
-        if (mapMode === '3D') {
-          if (d3.geoDistance([city.lng, city.lat], projection.invert([width / 2, height / 2])) > Math.PI / 2) return;
-        }
-
-        const regionTheme = REGION_COLORS[regionKey] || REGION_COLORS['ASIA'];
-        const glowRadius = 10 + Math.sin(pulseTime) * 4;
-        const gradient = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], glowRadius);
-        gradient.addColorStop(0, regionTheme.glow + '1)');
-        gradient.addColorStop(0.4, regionTheme.glow + '0.4)');
-        gradient.addColorStop(1, regionTheme.glow + '0)');
-
-        ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(pt[0], pt[1], glowRadius, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = regionTheme.core; ctx.beginPath(); ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2); ctx.fill();
-
-        if (showCityLabels) {
-          const labelText = `> ${city.city_name.toUpperCase()}`;
-          ctx.font = 'bold 10px Space Mono';
-          ctx.strokeStyle = labelStrokeColor;
-          ctx.lineWidth = 1.6;
-          ctx.strokeText(labelText, pt[0] + 8, pt[1] + 3);
-          ctx.fillStyle = labelTextColor;
-          ctx.fillText(labelText, pt[0] + 8, pt[1] + 3);
+      // 接收對手傳來的數據
+      conn.on('data', (data) => {
+        if (data.type === 'move') {
+          enemyMesh.position.set(data.x, data.y - 0.9, data.z); // 修正中心點高低
+          enemyMesh.rotation.y = data.ry;
+        } else if (data.type === 'shoot') {
+          // 開槍效果 (敵方開槍)
+          console.log('敵方使用了 ' + data.weapon + ' 開槍！');
         }
       });
 
-      ctx.restore();
-      requestAnimationFrame(renderCanvas);
+      conn.on('close', () => {
+        document.getElementById('status').innerText = '對方已離線';
+        enemyMesh.position.set(0, -100, 0);
+      });
     }
 
-    renderCanvas();
-
-    async function confirmAddCity() {
-      const coordsInput = document.getElementById('add-coords').value.trim();
-      const cityName = document.getElementById('add-city-name').value.trim();
-      const countryInput = document.getElementById('add-country-name').value;
-      const region = document.getElementById('add-region').value;
-
-      if (!coordsInput || !cityName) return alert('請填寫完整資訊！');
-
-      const country = cleanCountryName(countryInput);
-      const parts = coordsInput.split(',');
-      const lat = parseFloat(parts[0].trim());
-      const lng = parseFloat(parts[1].trim());
-
-      if (supabaseClient) {
-        const { data, error } = await supabaseClient.from('visited_cities').insert([
-          {
-            city_code: cityName.substring(0,3).toUpperCase() + Math.floor(Math.random() * 100),
-            city_name: cityName,
-            country: country,
-            region: region,
-            lat: lat,
-            lng: lng,
-            is_visited: true
-          }
-        ]).select();
-
-        if (error) return alert('INSERT ERROR: ' + error.message);
-        if (data) visitedCities.push(data[0]);
-      } else {
-        visitedCities.push({ city_name: cityName, country, region, lat, lng });
-      }
-
-      document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
-      updateWorldProgress();
-      closeAddCityModal();
-    }
-
-    function switchView(view) {
-      if (view === 'CARDS') {
-        document.getElementById('cards-view').style.display = 'block';
-        document.getElementById('btn-cards').classList.add('active'); document.getElementById('btn-world').classList.remove('active');
-        renderCountryCards();
-      } else {
-        document.getElementById('cards-view').style.display = 'none';
-        document.getElementById('btn-world').classList.add('active'); document.getElementById('btn-cards').classList.remove('active');
+    // --- 3. 操控與射擊邏輯 ---
+    function onKeyDown(e) {
+      switch (e.code) {
+        case 'KeyW': moveForward = true; break;
+        case 'KeyS': moveBackward = true; break;
+        case 'KeyA': moveLeft = true; break;
+        case 'KeyD': moveRight = true; break;
+        case 'Digit1': switchWeapon('rifle'); break;
+        case 'Digit2': switchWeapon('pistol'); break;
       }
     }
 
-    async function fetchVisitedCities() {
-      if (!supabaseClient) return;
-      try {
-        const { data } = await supabaseClient.from('visited_cities').select('*');
-        if (data) {
-          visitedCities = data;
-          document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
-          updateWorldProgress();
-        }
-      } catch(e){}
+    function onKeyUp(e) {
+      switch (e.code) {
+        case 'KeyW': moveForward = false; break;
+        case 'KeyS': moveBackward = false; break;
+        case 'KeyA': moveLeft = false; break;
+        case 'KeyD': moveRight = false; break;
+      }
     }
 
-    /* 80% 大視窗加載與地圖渲染 (改為微淡藍 / 冰藍色調燈光) */
-    function openSubdivisionModal(countryName, countryCities) {
-      playClickSound();
-      const modal = document.getElementById('subdivision-pop-modal');
-      const flagImg = document.getElementById('pop-flag-img');
-      const title = document.getElementById('pop-country-title');
-      const cityListEl = document.getElementById('pop-city-list');
-      const container = document.getElementById('pop-map-container');
+    function switchWeapon(type) {
+      if (weapons[type] && currentWeaponKey !== type) {
+        currentWeaponKey = type;
+        createGunMesh();
+      }
+    }
 
-      const flagCode = COUNTRY_FLAG_CODES[countryName] || 'un';
-      flagImg.src = `https://flagcdn.com/w160/${flagCode}.png`;
-      title.innerText = `#${countryName}`;
+    function onShoot(e) {
+      if (!controls.isLocked || e.button !== 0) return;
       
-      cityListEl.innerHTML = '';
-      countryCities.forEach(c => {
-        const div = document.createElement('div');
-        div.className = 'modal-city-item';
-        div.innerText = c.city_name.toUpperCase();
-        cityListEl.appendChild(div);
-      });
+      // 開槍動畫
+      gunMesh.position.z += 0.05;
+      setTimeout(() => gunMesh.position.z -= 0.05, 50);
 
-      container.innerHTML = '';
-      modal.style.display = 'flex';
-
-      let targetFeatures = [];
-      if (globalSubdivisionsData && globalSubdivisionsData.features) {
-        targetFeatures = globalSubdivisionsData.features.filter(f => {
-          const admin = (f.properties.admin || f.properties.admin_0 || '').toUpperCase().trim();
-          const geounit = (f.properties.geounit || '').toUpperCase().trim();
-          return admin === countryName || geounit === countryName || admin.includes(countryName) || countryName.includes(admin);
-        });
+      // 廣播開槍事件給對手
+      if (conn && conn.open) {
+        conn.send({ type: 'shoot', weapon: currentWeaponKey });
       }
+    }
 
-      if (targetFeatures.length === 0 && worldGeoData) {
-        const countries = topojson.feature(worldGeoData, worldGeoData.objects.countries);
-        const match = countries.features.find(f => (f.properties.name || '').toUpperCase().trim() === countryName);
-        if (match) targetFeatures = [match];
-      }
+    // --- 4. 遊戲主迴圈 ---
+    function animate() {
+      requestAnimationFrame(animate);
 
-      if (targetFeatures.length === 0) {
-        container.innerHTML = '<div style="font-size:11px; color:var(--text-muted);">// MAP DATA LOADING...</div>';
-        return;
-      }
+      if (controls.isLocked) {
+        const time = performance.now();
+        const delta = (time - prevTime) / 1000;
 
-      const featureCollection = { type: 'FeatureCollection', features: targetFeatures };
-      const mapBounds = container.getBoundingClientRect();
-      const svgWidth = mapBounds.width - 40;
-      const svgHeight = mapBounds.height - 40;
+        velocity.x -= velocity.x * 10.0 * delta;
+        velocity.z -= velocity.z * 10.0 * delta;
 
-      const svg = d3.select(container).append('svg').attr('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
-      const projection = d3.geoMercator().fitSize([svgWidth, svgHeight], featureCollection);
-      const path = d3.geoPath().projection(projection);
+        direction.z = Number(moveForward) - Number(moveBackward);
+        direction.x = Number(moveRight) - Number(moveLeft);
+        direction.normalize();
 
-      // 塊狀點亮都道府縣/行政分區
-      const unlockedProvinces = new Set();
-      countryCities.forEach(city => {
-        const pt = [city.lng, city.lat];
-        targetFeatures.forEach(feat => {
-          try {
-            if (d3.geoContains(feat, pt)) {
-              unlockedProvinces.add(feat);
-            }
-          } catch(e){}
-        });
-      });
+        if (moveForward || moveBackward) velocity.z -= direction.z * 40.0 * delta;
+        if (moveLeft || moveRight) velocity.x -= direction.x * 40.0 * delta;
 
-      // 繪製極簡科技感線條與微冰藍色/微白微光填充
-      svg.selectAll('.pop-subdiv-feature')
-        .data(targetFeatures)
-        .enter()
-        .append('path')
-        .attr('class', 'pop-subdiv-feature')
-        .attr('d', path)
-        .attr('fill', d => unlockedProvinces.has(d) ? 'rgba(56, 189, 248, 0.22)' : 'rgba(255, 255, 255, 0.02)')
-        .attr('stroke', d => unlockedProvinces.has(d) ? '#ffffff' : 'rgba(255, 255, 255, 0.18)')
-        .attr('stroke-width', d => unlockedProvinces.has(d) ? 1.6 : 0.8)
-        .style('transition', 'all 0.3s ease');
+        controls.moveRight(-velocity.x * delta);
+        controls.moveForward(-velocity.z * delta);
 
-      // 標註城市微藍/微白霓虹點與名稱
-      countryCities.forEach(city => {
-        const pt = projection([city.lng, city.lat]);
-        if (pt && !isNaN(pt[0]) && !isNaN(pt[1])) {
-          // 微藍光圈
-          svg.append('circle')
-            .attr('cx', pt[0]).attr('cy', pt[1])
-            .attr('r', 12)
-            .attr('fill', 'rgba(56, 189, 248, 0.35)');
-
-          // 核心白色光點
-          svg.append('circle')
-            .attr('cx', pt[0]).attr('cy', pt[1])
-            .attr('r', 4)
-            .attr('fill', '#ffffff');
-
-          // 標籤文字
-          svg.append('text')
-            .attr('x', pt[0] + 8)
-            .attr('y', pt[1] + 4)
-            .text(city.city_name.toUpperCase())
-            .attr('fill', '#ffffff')
-            .attr('font-size', '11px')
-            .attr('font-family', 'Space Mono')
-            .attr('font-weight', 'bold');
+        // 同步位置給對手
+        const pos = controls.getObject().position;
+        if (conn && conn.open) {
+          conn.send({
+            type: 'move',
+            x: pos.x, y: pos.y, z: pos.z,
+            ry: camera.rotation.y
+          });
         }
-      });
-    }
 
-    function closeSubdivisionModal() {
-      playClickSound();
-      document.getElementById('subdivision-pop-modal').style.display = 'none';
-    }
-
-    /* 渲染 Country Cards 視窗 */
-    function renderCountryCards() {
-      const container = document.getElementById('cards-container'); container.innerHTML = '';
-      const grouped = {};
-      visitedCities.forEach(c => {
-        const country = cleanCountryName(c.country);
-        if (!grouped[country]) grouped[country] = [];
-        grouped[country].push(c);
-      });
-
-      Object.keys(grouped).forEach((country) => {
-        const citiesObjects = grouped[country];
-        const citiesList = citiesObjects.map(c => c.city_name).join(', ');
-        const bgImg = getCountryImageUrl(country);
-
-        const card = document.createElement('div');
-        card.className = 'flip-card-container';
-        card.onclick = function() { openSubdivisionModal(country, citiesObjects); };
-
-        card.innerHTML = `
-          <div class="deep-card-front" style="background-image: url('${bgImg}');">
-            <div class="deep-card-overlay"></div>
-            <div class="deep-card-content">
-              <div class="deep-card-title">#${country}</div>
-              <div class="deep-card-cities">Cities: ${citiesList}</div>
-              <div class="click-zoom-hint">[ CLICK TO EXPAND REGION MAP ]</div>
-            </div>
-          </div>
-        `;
-
-        container.appendChild(card);
-      });
-    }
-
-    function renderCityManageList() {
-      const container = document.getElementById('city-list-container');
-      container.innerHTML = '';
-
-      if (visitedCities.length === 0) {
-        container.innerHTML = '<div style="color:#666; font-size:10px;">NO CITIES UNLOCKED YET.</div>';
-        return;
+        prevTime = time;
       }
 
-      visitedCities.forEach((city, index) => {
-        const div = document.createElement('div');
-        div.style.display = 'flex'; div.style.justifyContent = 'space-between'; div.style.alignItems = 'center';
-        div.style.padding = '8px 0'; div.style.borderBottom = '1px dashed var(--border-color)'; div.style.fontSize = '10px';
-        div.innerHTML = `
-          <span>> ${city.city_name.toUpperCase()} (${city.country})</span>
-          <span style="color:var(--glyph-red); cursor:pointer; font-weight:bold;" onclick="playClickSound(); deleteCity(${index})">[DEL]</span>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    async function deleteCity(index) {
-      if (!currentUser) return alert('請先登入管理員帳號！');
-      const target = visitedCities[index];
-      if (!confirm(`確定刪除 ${target.city_name} (${target.country})？`)) return;
-
-      if (supabaseClient && target.id) {
-        const { error } = await supabaseClient.from('visited_cities').delete().eq('id', target.id);
-        if (error) return alert('DELETE ERROR: ' + error.message);
-      }
-
-      visitedCities.splice(index, 1);
-      document.getElementById('city-count').innerText = visitedCities.length.toString().padStart(2, '0');
-      updateWorldProgress();
-      renderCityManageList();
+      renderer.render(scene, camera);
     }
   </script>
 </body>
