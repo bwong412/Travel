@@ -83,7 +83,7 @@
       backdrop-filter: blur(8px); transform: translate(15px, 15px); transition: opacity 0.2s ease; white-space: nowrap;
     }
 
-    /* Top Navigation Bar Bar Header BackDrop Mask (朦朧頂部擋板) */
+    /* Top Navigation Bar Bar Header BackDrop Mask */
     .top-blur-mask {
       position: absolute; top: 0; left: 0; width: 100vw; height: 75px; z-index: 900;
       background: linear-gradient(180deg, var(--bg-color) 40%, rgba(0,0,0,0) 100%);
@@ -148,7 +148,7 @@
     }
     .filter-chip:hover, .filter-chip.active { background: var(--glyph-white); color: var(--bg-color); font-weight: bold; border-color: var(--glyph-white); }
 
-    /* Pack Drawer 抽屜 (Nested Card 高級二階質感 + 流暢滑出) */
+    /* Pack Drawer 抽屜 */
     .pack-drawer {
       display: none; width: 100%; background: var(--drawer-bg);
       border: 1px solid var(--border-color); backdrop-filter: blur(20px);
@@ -219,7 +219,7 @@
     .btn { flex: 1; padding: 8px; background: var(--glyph-white); color: var(--bg-color); border: none; font-weight: bold; cursor: pointer; font-size: 10px; letter-spacing: 1px; border-radius: 4px; }
     .btn-cancel { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); }
 
-    /* Country Cards View (優化頂部距離與朦朧隱藏) */
+    /* Country Cards View */
     .cards-view-overlay { display: none; position: fixed; top: 75px; left: 0; width: 100vw; height: calc(100vh - 75px); z-index: 850; background: var(--canvas-bg); padding: 20px 20px 80px 20px; overflow-y: auto; }
     .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; max-width: 1100px; margin: 0 auto; }
     .flip-card-container { perspective: 1000px; height: 380px; cursor: pointer; }
@@ -248,7 +248,7 @@
   <!-- Tooltip 懸浮框 -->
   <div class="country-tooltip" id="country-tooltip"></div>
 
-  <!-- 朦朧頂部擋板 (Pic 3 遮罩優化) -->
+  <!-- 朦朧頂部擋板 -->
   <div class="top-blur-mask"></div>
 
   <!-- Top Navigation Bar -->
@@ -263,7 +263,7 @@
     <button class="admin-btn" id="admin-btn" onclick="playClickSound(); openLoginModal()">[ LOGIN ]</button>
   </div>
 
-  <!-- Dashboard Panel Wrapper (把 Dashboard 與 Drawer 組合成包裹結構) -->
+  <!-- Dashboard Panel Wrapper -->
   <div class="dashboard-wrapper">
     <div class="dashboard" id="main-dashboard">
       <div class="brand-header">
@@ -285,7 +285,7 @@
       <button class="manage-btn" onclick="playClickSound(); openManageModal()">[ EDIT / DELETE CITIES ]</button>
     </div>
 
-    <!-- Filter 抽屜選單 (Pack Drawer) 順滑流暢滑出且雙色階質感 -->
+    <!-- Filter 抽屜選單 -->
     <div class="pack-drawer" id="pack-drawer">
       <div class="drawer-title" id="drawer-title">REGION // PACK</div>
       <div id="drawer-content"></div>
@@ -586,11 +586,14 @@
       }
     }
 
-    /* 平滑鏡頭飛躍與抽屜展開 */
+    /* 修正：Filter 按下時暫停 3D 自轉並重置角度狀態，徹底解決卡 Bug 問題 */
     function setFilter(region, element) {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
       currentFilter = region;
+
+      // 核心修復 1: 重置用戶操作時間，暫停 3D 自動自轉
+      lastUserActionTime = Date.now();
 
       targetPan = { x: 0, y: 0 };
       panOffset = { x: 0, y: 0 };
@@ -598,6 +601,11 @@
       const target = REGION_TARGETS[region] || REGION_TARGETS['ALL'];
       targetCenter = [target.lng, target.lat];
       targetScale = target.zoom;
+
+      // 核心修復 2: 3D 旋轉角度同步重置
+      if (mapMode === '3D') {
+        rotation = [-targetCenter[0], -targetCenter[1]];
+      }
 
       const drawer = document.getElementById('pack-drawer');
       const drawerTitle = document.getElementById('drawer-title');
@@ -646,6 +654,8 @@
       document.getElementById('opt-3d').classList.toggle('active', mode === '3D');
       if (mode === '3D') {
         projection = d3.geoOrthographic().scale(Math.min(width, height) / 2.4).translate([width / 2, height / 2]).clipAngle(90);
+        rotation = [-currentCenter[0], -currentCenter[1]];
+        projection.rotate([rotation[0], rotation[1]]);
       } else {
         projection = d3.geoMercator().center(currentCenter).scale((width / 6.5) * currentScale).translate([width / 2, height / 2]);
       }
@@ -808,12 +818,14 @@
         panOffset.y += (targetPan.y - panOffset.y) * 0.1;
         projection.center(currentCenter).scale((width / 6.5) * currentScale);
       } else if (mapMode === '3D') {
+        // 核心修復 3: 在自轉判斷中加入更平滑的角度過渡
         if (!isDragging && (Date.now() - lastUserActionTime > IDLE_ROTATION_DELAY)) {
-          rotation[0] += 0.15; projection.rotate([rotation[0], rotation[1]]);
+          rotation[0] += 0.15;
         } else {
-          rotation = [-currentCenter[0], -currentCenter[1]];
-          projection.rotate([rotation[0], rotation[1]]);
+          rotation[0] += (-targetCenter[0] - rotation[0]) * 0.08;
+          rotation[1] += (-targetCenter[1] - rotation[1]) * 0.08;
         }
+        projection.rotate([rotation[0], rotation[1]]);
         projection.scale((Math.min(width, height) / 2.4) * currentScale);
       }
 
